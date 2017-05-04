@@ -24,9 +24,6 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\CQPdemo\QTool.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\CQPdemo\base64.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -36,12 +33,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TestDouDiZhu.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CQPdemo\QTool.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CQPdemo\base64.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
