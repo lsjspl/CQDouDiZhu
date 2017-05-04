@@ -20,7 +20,7 @@ int ac = -1; //AuthCode 调用酷Q的方法时需要用到
 bool enabled = false;
 
 
-
+//ssssss
 
 
 static  string flag[15] = { "3","4","5","6","7","8","9","10","J","Q","K","A","2", "鬼","王" };
