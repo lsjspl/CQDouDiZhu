@@ -55,11 +55,11 @@
     <Library Include="CQP.lib" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="com.example.democ.json" />
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="com.example.democ.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="com.master5.doudizhu.json" />
   </ItemGroup>
 </Project>
