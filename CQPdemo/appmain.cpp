@@ -19,16 +19,15 @@ using namespace std;
 int ac = -1; //AuthCode 调用酷Q的方法时需要用到
 bool enabled = false;
 
-
-//ssssss
-
+static const string  cardDest[54] = {
+	"鬼","王",
+	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+};
 
 static const string flag[15] = { "3","4","5","6","7","8","9","10","J","Q","K","A","2", "鬼","王" };
-static const string cardDest[54]={"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"鬼","王"};
 
 const int STATE_WAIT = 0;
 const int STATE_START = 1;
@@ -111,7 +110,7 @@ public:
 	stringstream msg;
 	int64_t number;
 	vector<string> card;
-	int32_t socre ;
+	int32_t socre;
 	bool isReady;
 
 	void sendMsg();
@@ -119,21 +118,14 @@ public:
 	void breakLine();
 };
 
-Player::Player(){
+Player::Player() {
 	socre = 5000;
 	isReady = false;
 }
 
 class Desk {
 public:
-	//string cards[54] = {
-	//	"10","j","10","j","10","j","4","5","4","5","4","5",
-	//	"2","3","6","7","8","9","q","k","a",
-	//	"2","3","6","7","8","9","q","k","a",
-	//	"2","3","6","7","8","9","q","k","a",
-	//	"2","3","4","5","6","7","8","9","10","j","q","k","a",
-	//	"鬼","王"
-	//};
+
 	Desk();
 	string cards[54];
 	int64_t number;
@@ -146,7 +138,7 @@ public:
 
 	vector<string> lastCard;//上位玩家的牌
 	string lastCardType;//上位玩家得牌类
-	vector<int> *lastWeights ;//上位玩家的牌
+	vector<int> *lastWeights;//上位玩家的牌
 
 	stringstream msg;
 
@@ -178,15 +170,15 @@ public:
 	void sendPlayerMsg();
 
 };
-Desk::Desk(){
-	for(int i=0;i<54;i++){
-		this->cards [i]=cardDest[i];
+Desk::Desk() {
+	for (int i = 0; i<54; i++) {
+		this->cards[i] = cardDest[i];
 	}
-	
+
 	this->state = 0;
 	this->lastPlayIndex = -1;//当前谁出得牌
-	this-> nextPlayIndex = -1;//该谁出牌
-	this-> bossIndex = -1;//谁是地主
+	this->nextPlayIndex = -1;//该谁出牌
+	this->bossIndex = -1;//谁是地主
 
 	vector<string> lastCard;//上位玩家的牌
 	this->lastCardType = "";//上位玩家得牌类
@@ -250,12 +242,12 @@ void Desk::listPlayers(int type)
 {
 
 	bool hasType = (type & 1) == 1;
-	bool hasOwn = ((type >> 1) & 1 )== 1;
+	bool hasOwn = ((type >> 1) & 1) == 1;
 
 	for (unsigned i = 0; i < this->players.size(); i++) {
 		this->msg << i + 1 << ":";
 		if (hasType) {
-			this->msg << "[" << (i == this->bossIndex && state != STATE_GAMEING ? "地主" : "农民") << "]";
+			this->msg << "[" << (i == this->bossIndex && state == STATE_GAMEING ? "地主" : "农民") << "]";
 		}
 
 		this->msg << "[CQ:at,qq=" << this->players[i]->number << "]";
@@ -312,7 +304,7 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 	int cardCount = list.size();
 	sort(list.begin(), list.end(), compareCard);
 
-	if (cardCount == 2 && findFlag(list[0]) + findFlag(list[1]) == 29) {//王炸
+	if (cardCount == 2 && findFlag(list[0]) + findFlag(list[1]) == 27) {//王炸
 		return "王炸";
 	}
 
@@ -410,34 +402,34 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 		&& findFlag(cards[0]) == findFlag(cards[cardGroupCout - 1]) - cardGroupCout + 1
 		&& findFlag(cards[cardGroupCout - 1]) < 13
 		) {//连对
-			for (unsigned i = 0; i < tmpCount.size(); i++) {
-				int tmp = tmpCount[i];
-				for (unsigned m = 0; m < counts.size(); m++) {
-					if (counts[m] == tmp) {
-						weights->push_back(findFlag(cards[m]));
-						counts[m] = -1;
-					}
+		for (unsigned i = 0; i < tmpCount.size(); i++) {
+			int tmp = tmpCount[i];
+			for (unsigned m = 0; m < counts.size(); m++) {
+				if (counts[m] == tmp) {
+					weights->push_back(findFlag(cards[m]));
+					counts[m] = -1;
 				}
 			}
+		}
 
-			return "连对";
+		return "连对";
 	}
 
 	if (cardGroupCout > 4 && max == 1 && min == 1
 		&& findFlag(cards[0]) == findFlag(cards[cardGroupCout - 1]) - cardGroupCout + 1
 		&& findFlag(cards[cardGroupCout - 1]) < 13
 		) {//顺子
-			for (unsigned i = 0; i < tmpCount.size(); i++) {
-				int tmp = tmpCount[i];
-				for (unsigned m = 0; m < counts.size(); m++) {
-					if (counts[m] == tmp) {
-						weights->push_back(findFlag(cards[m]));
-						counts[m] = -1;
-					}
+		for (unsigned i = 0; i < tmpCount.size(); i++) {
+			int tmp = tmpCount[i];
+			for (unsigned m = 0; m < counts.size(); m++) {
+				if (counts[m] == tmp) {
+					weights->push_back(findFlag(cards[m]));
+					counts[m] = -1;
 				}
 			}
+		}
 
-			return "顺子";
+		return "顺子";
 	}
 
 	//飞机
@@ -620,6 +612,7 @@ void Desk::play(int64_t playNum, vector<string> list)
 	if (playIndex == -1 || playIndex != this->nextPlayIndex || this->state != STATE_GAMEING) {
 		return;
 	}
+
 	Player *player = this->players[playIndex];
 	vector<string> mycardTmp(player->card);
 
@@ -736,15 +729,15 @@ void Desk::exit(int64_t number)
 void Desk::commandList()
 {
 	int i = 1;
-	this->msg
-		<< i++ << " "<< "上桌：加入游戏"
-		<< i++ << " " << "出：出牌 比如 出23456"
-		<< i++ << " " << "过：过牌"
-		<< i++ << " " << "抢地主 | 不抢：是否抢地主"
-		<< i++ << " " << "开始游戏：是否开始游戏"
-		<< i++ << " " << "下桌：退出游戏，只能在准备环节使用"
-		<< i++ << " " << "玩家列表：当前在游戏中得玩家信息"
-		<< i++ << " " << "记牌器：显示已经出过的牌";
+	this->msg << "=    命令列表    =\r\n"
+		<< (i++) << " " << "上桌：加入游戏\r\n"
+		<< (i++) << " " << "出：出牌 比如 出23456\r\n"
+		<< (i++) << " " << "过：过牌\r\n"
+		<< (i++) << " " << "抢地主 | 不抢：是否抢地主\r\n"
+		<< (i++) << " " << "开始游戏：是否开始游戏\r\n"
+		<< (i++) << " " << "下桌：退出游戏，只能在准备环节使用\r\n"
+		<< (i++) << " " << "玩家列表：当前在游戏中得玩家信息\r\n"
+		<< (i++) << " " << "记牌器：显示已经出过的牌\r\n";
 	this->breakLine();
 }
 
@@ -867,13 +860,13 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 
 	Desk *desk = datas.getOrCreatDesk(deskNum);
 
-	if (msg == "上桌" || msg == "加入游戏" || msg=="JOIN") {
+	if (msg == "上桌" || msg == "加入游戏" || msg == "JOIN") {
 		desk->join(playNum);
 	}
 	else if (msg.find("出") == 0 || msg.find("出牌") == 0) {//出牌阶段
 		desk->play(playNum, msg);
 	}
-	else if (msg == "过" || msg == "过牌" || msg == "不出" || msg == "不要" || msg=="PASS") {//跳过出牌阶段
+	else if (msg == "过" || msg == "过牌" || msg == "不出" || msg == "不要" || msg == "PASS") {//跳过出牌阶段
 		desk->discard(playNum);
 	}
 	else if (msg == "退出游戏" || msg == "退桌" || msg == "下桌") {//结束游戏
@@ -882,7 +875,7 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 	else if (msg == "命令列表") {
 		desk->commandList();
 	}
-	else if ((msg == "结束游戏" || msg=="GAMEOVER") && playNum == 895252155) {//结束游戏
+	else if ((msg == "结束游戏" || msg == "GAMEOVER") && playNum == 895252155) {//结束游戏
 		desk->gameOver(deskNum);
 		return;
 	}
@@ -898,7 +891,7 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 	else if (msg == "不抢") {
 		desk->dontBoss(playNum);
 	}
-	else if (msg=="记牌器") {
+	else if (msg == "记牌器") {
 		desk->msg << "未开发完成";
 	}
 
@@ -919,10 +912,6 @@ void Player::breakLine()
 {
 	this->msg << "\r\n";
 }
-
-
-
-
 
 /*
 * 返回应用的ApiVer、Appid，打包后将不会调用

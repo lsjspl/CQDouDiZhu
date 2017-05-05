@@ -23,7 +23,7 @@
     <ProjectGuid>{6BEDF492-44CB-4758-A998-FBC58971A147}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>TestDouDiZhu</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
