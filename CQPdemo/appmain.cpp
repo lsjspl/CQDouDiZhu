@@ -23,7 +23,12 @@ bool enabled = false;
 //ssssss
 
 
-static  string flag[15] = { "3","4","5","6","7","8","9","10","J","Q","K","A","2", "鬼","王" };
+static const string flag[15] = { "3","4","5","6","7","8","9","10","J","Q","K","A","2", "鬼","王" };
+static const string cardDest[54]={"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+		"鬼","王"};
 
 const int STATE_WAIT = 0;
 const int STATE_START = 1;
@@ -102,18 +107,22 @@ void toUpper(string &str) {
 class Player
 {
 public:
+	Player();
 	stringstream msg;
 	int64_t number;
 	vector<string> card;
-	int32_t socre = 5000;
-	bool isReady = false;
+	int32_t socre ;
+	bool isReady;
 
 	void sendMsg();
 	void listCards();
 	void breakLine();
 };
 
-
+Player::Player(){
+	socre = 5000;
+	isReady = false;
+}
 
 class Desk {
 public:
@@ -125,24 +134,19 @@ public:
 	//	"2","3","4","5","6","7","8","9","10","j","q","k","a",
 	//	"鬼","王"
 	//};
-	string cards[54] = {
-		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-		"鬼","王"
-	};
+	Desk();
+	string cards[54];
 	int64_t number;
 	vector<Player*> players;
 
-	int state = 0;
-	int lastPlayIndex = -1;//当前谁出得牌
-	int nextPlayIndex = -1;//该谁出牌
-	int bossIndex = -1;//谁是地主
+	int state;
+	int lastPlayIndex;//当前谁出得牌
+	int nextPlayIndex;//该谁出牌
+	int bossIndex;//谁是地主
 
 	vector<string> lastCard;//上位玩家的牌
-	string lastCardType = "";//上位玩家得牌类
-	vector<int> *lastWeights = new vector<int>;//上位玩家的牌
+	string lastCardType;//上位玩家得牌类
+	vector<int> *lastWeights ;//上位玩家的牌
 
 	stringstream msg;
 
@@ -174,6 +178,20 @@ public:
 	void sendPlayerMsg();
 
 };
+Desk::Desk(){
+	for(int i=0;i<54;i++){
+		this->cards [i]=cardDest[i];
+	}
+	
+	this->state = 0;
+	this->lastPlayIndex = -1;//当前谁出得牌
+	this-> nextPlayIndex = -1;//该谁出牌
+	this-> bossIndex = -1;//谁是地主
+
+	vector<string> lastCard;//上位玩家的牌
+	this->lastCardType = "";//上位玩家得牌类
+	this->lastWeights = new vector<int>;//上位玩家的牌
+}
 
 class Desks {
 public:
@@ -392,34 +410,34 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 		&& findFlag(cards[0]) == findFlag(cards[cardGroupCout - 1]) - cardGroupCout + 1
 		&& findFlag(cards[cardGroupCout - 1]) < 13
 		) {//连对
-		for (unsigned i = 0; i < tmpCount.size(); i++) {
-			int tmp = tmpCount[i];
-			for (unsigned m = 0; m < counts.size(); m++) {
-				if (counts[m] == tmp) {
-					weights->push_back(findFlag(cards[m]));
-					counts[m] = -1;
+			for (unsigned i = 0; i < tmpCount.size(); i++) {
+				int tmp = tmpCount[i];
+				for (unsigned m = 0; m < counts.size(); m++) {
+					if (counts[m] == tmp) {
+						weights->push_back(findFlag(cards[m]));
+						counts[m] = -1;
+					}
 				}
 			}
-		}
 
-		return "连对";
+			return "连对";
 	}
 
 	if (cardGroupCout > 4 && max == 1 && min == 1
 		&& findFlag(cards[0]) == findFlag(cards[cardGroupCout - 1]) - cardGroupCout + 1
 		&& findFlag(cards[cardGroupCout - 1]) < 13
 		) {//顺子
-		for (unsigned i = 0; i < tmpCount.size(); i++) {
-			int tmp = tmpCount[i];
-			for (unsigned m = 0; m < counts.size(); m++) {
-				if (counts[m] == tmp) {
-					weights->push_back(findFlag(cards[m]));
-					counts[m] = -1;
+			for (unsigned i = 0; i < tmpCount.size(); i++) {
+				int tmp = tmpCount[i];
+				for (unsigned m = 0; m < counts.size(); m++) {
+					if (counts[m] == tmp) {
+						weights->push_back(findFlag(cards[m]));
+						counts[m] = -1;
+					}
 				}
 			}
-		}
 
-		return "顺子";
+			return "顺子";
 	}
 
 	//飞机
