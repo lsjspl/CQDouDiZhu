@@ -20,7 +20,7 @@ static const string flag[15] = { "3","4","5","6","7","8","9","10","J","Q","K","A
 const int STATE_WAIT = 0;
 const int STATE_START = 1;
 const int STATE_BOSSING = 2;
-const int STATE_GAMEING = 2;
+const int STATE_GAMEING = 3;
 
 class Util{
 public:
