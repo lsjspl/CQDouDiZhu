@@ -10,6 +10,32 @@
 using namespace std;
 
 int Util::AC = 0;
+bool Util::isTest = false;
+
+void Util::sendGroupMsg(int64_t groupid, const char *msg) {
+	if (Util::isTest) {
+		string aa = msg;
+		cout << "群发：" << aa << endl;
+	}
+	else {
+		CQ_sendGroupMsg(Util::AC, groupid, msg);
+	}
+
+
+}
+
+void Util::sendPrivateMsg(int64_t number, const char* msg) {
+	if (Util::isTest) {
+		string aa = msg;
+		cout << "私聊：" << aa << endl;
+	}
+	else {
+		CQ_sendPrivateMsg(Util::AC, number, msg);
+	}
+}
+
+
+
 
 int Util::findAndRemove(vector<string> &dest, string str) {
 
@@ -47,12 +73,12 @@ int Util::findFlag(string str)
 
 int Util::desc(int a, int b)
 {
-	return a>b;
+	return a > b;
 }
 
 int Util::asc(int a, int b)
 {
-	return a<b;
+	return a < b;
 }
 
 bool Util::compareCard(const string &carda, const string &cardb)
@@ -84,9 +110,14 @@ void Util::setAC(int32_t ac)
 	Util::AC = ac;
 }
 
+void Util::setIsTest(bool value)
+{
+	Util::isTest = value;
+}
+
 
 Desk::Desk() {
-	for (int i = 0; i<54; i++) {
+	for (int i = 0; i < 54; i++) {
 		this->cards[i] = cardDest[i];
 	}
 
@@ -118,7 +149,7 @@ void Player::sendMsg()
 	if (tmp[length - 2] == '\r' && tmp[length - 1] == '\n') {
 		tmp = tmp.substr(0, length - 2);
 	}
-	CQ_sendPrivateMsg(Util::AC, this->number, tmp.data());
+	Util::sendPrivateMsg(this->number, tmp.data());
 	this->msg.str("");
 }
 
@@ -346,7 +377,7 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 	//飞机
 	int  planeCount = 0;
 	for (unsigned i = 0; i < counts.size() && counts[i] >= 3; i++, planeCount++);
-	if (planeCount>1) {
+	if (planeCount > 1) {
 		string tmp;
 		if (cardCount == planeCount * 3) {
 			tmp = "飞机";
@@ -382,9 +413,6 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 }
 
 
-
-
-
 void Desk::sendMsg()
 {
 
@@ -396,7 +424,7 @@ void Desk::sendMsg()
 	if (tmp[length - 2] == '\r' && tmp[length - 1] == '\n') {
 		tmp = tmp.substr(0, length - 2);
 	}
-	CQ_sendGroupMsg(Util::AC, this->number, tmp.data());
+	Util::sendGroupMsg(this->number, tmp.data());
 	this->msg.str("");
 }
 
@@ -616,7 +644,7 @@ void Desk::gameOver(int64_t number)
 	}
 	vector<Desk*>::iterator it = datas.desks.begin() + index;
 	datas.desks.erase(it);
-	CQ_sendGroupMsg(Util::AC, number, "游戏结束");
+	Util::sendGroupMsg(number, "游戏结束");
 }
 
 void Desk::exit(int64_t number)

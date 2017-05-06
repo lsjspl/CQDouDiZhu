@@ -25,6 +25,9 @@ const int STATE_GAMEING = 3;
 class Util{
 public:
 	static int AC;
+	static bool isTest ;
+	static void sendGroupMsg(int64_t groupid, const char *msg);
+	static void sendPrivateMsg(int64_t groupid, const char *msg);
 	static int  findAndRemove(vector<string> &dest, string str);
 	static int  find(vector<string> &dest, string str);
 	static int  findFlag(string str);
@@ -34,7 +37,7 @@ public:
 	static void  trim(string &s);
 	static void  toUpper(string &str);
 	static void setAC(int32_t ac);
-	static int32_t getAC();
+	static void setIsTest(bool value);
 };
 
 class Player

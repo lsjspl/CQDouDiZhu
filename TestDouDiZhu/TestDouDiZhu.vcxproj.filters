@@ -24,7 +24,7 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\CQPdemo\base64.h">
+    <ClInclude Include="..\com.master5.doudizhu\game.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,5 +35,11 @@
     <ClCompile Include="TestDouDiZhu.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\com.master5.doudizhu\game.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\com.master5.doudizhu\CQP.lib" />
   </ItemGroup>
 </Project>
