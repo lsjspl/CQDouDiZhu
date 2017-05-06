@@ -16,12 +16,12 @@
         --game.cpp                            游戏<br>
         --com.master5.doudizhu.json           酷q官方配置<br>
         --CQP.lib                             酷q官方SDK<br>
-      --TestDouDiZhu<br>
+      --com.master5.test<br>
         --TestDouDiZhu.cpp                   测试<br>
 解决方案下包括两个项目：<br>
 com.master5.doudizhu 和 TestDouDiZhu<br>
 com.master5.doudizhu 为插件项目 请使用release编译<br>
-TestDouDiZhu 为测试项目 请使用debug编译<br>
+com.master5.test 为测试项目 请使用debug编译<br>
 
 
 
