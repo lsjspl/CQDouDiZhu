@@ -61,7 +61,7 @@
     <Library Include="CQP.lib" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="com.example.democ.rc">
+    <ResourceCompile Include="com.master5.doudizhu.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
