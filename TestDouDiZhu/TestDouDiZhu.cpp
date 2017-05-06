@@ -13,7 +13,6 @@ using namespace std;
 
 int main() {
 
-	Util::setIsTest(true);
 	string info = "ÄãºÃ";
 	int64_t desknum = 10000000;
 	int64_t playNum = 111111;
@@ -28,9 +27,9 @@ int main() {
 	while (true) {
 		char str[30];
 		cin.getline(str, 30);
+		cout << str << endl;
 
-		//int index = datas.desks[datas.getDesk(desknum)]->nextPlayIndex;
-		//datas.game(desknum, playNum + index, str);
+		Util::testMsg(desknum,playNum,str);
 
 	}
 

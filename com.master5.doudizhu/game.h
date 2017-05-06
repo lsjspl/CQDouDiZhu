@@ -12,7 +12,12 @@ static const string  cardDest[54] = {
 	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
 	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
 	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
-	"2","3","4","5","6","7","8","9","10","J","Q","K","A",
+	"2","3","4","5","6","7","8","9","10","J","Q","K","A"
+	
+	//"2","3","3","3","4","4","4","5","5","5","6","6","7","7","8","8","9","10","J","Q","K","A","¹í","Íõ",
+	//"2","9","10","J","Q","K","A",
+	//"2","6","7","8","9","10","J","Q","K","A",
+	//"2","3","4","5","6","7","8","9","10","J","Q","K","A",
 };
 
 static const string flag[15] = { "3","4","5","6","7","8","9","10","J","Q","K","A","2", "¹í","Íõ" };
@@ -22,10 +27,11 @@ const int STATE_START = 1;
 const int STATE_BOSSING = 2;
 const int STATE_GAMEING = 3;
 
+
 class Util{
 public:
 	static int AC;
-	static bool isTest ;
+	static void testMsg(int64_t playNum, int64_t desknum, const char * str);
 	static void sendGroupMsg(int64_t groupid, const char *msg);
 	static void sendPrivateMsg(int64_t groupid, const char *msg);
 	static int  findAndRemove(vector<string> &dest, string str);
@@ -37,7 +43,6 @@ public:
 	static void  trim(string &s);
 	static void  toUpper(string &str);
 	static void setAC(int32_t ac);
-	static void setIsTest(bool value);
 };
 
 class Player

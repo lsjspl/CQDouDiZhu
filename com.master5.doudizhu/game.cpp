@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "string"
+#ifdef _DEBUG 
+#else
 #include "cqp.h"
+#endif 
 #include <time.h>
 #include <vector>
 #include <algorithm>
@@ -10,28 +13,31 @@
 using namespace std;
 
 int Util::AC = 0;
-bool Util::isTest = false;
+
+static Desks datas;
+
+ void Util::testMsg(int64_t desknum, int64_t playNum,const char * str) {
+	int index = datas.desks[0]->nextPlayIndex;
+	datas.game(desknum, playNum + index, str);
+}
+
 
 void Util::sendGroupMsg(int64_t groupid, const char *msg) {
-	if (Util::isTest) {
-		string aa = msg;
-		cout << "群发：" << aa << endl;
-	}
-	else {
-		CQ_sendGroupMsg(Util::AC, groupid, msg);
-	}
-
-
+#ifdef _DEBUG  
+	string aa = msg;
+	cout << "群发：" << aa << endl;
+#else
+	CQ_sendGroupMsg(Util::AC, groupid, msg);
+#endif
 }
 
 void Util::sendPrivateMsg(int64_t number, const char* msg) {
-	if (Util::isTest) {
-		string aa = msg;
-		cout << "私聊：" << aa << endl;
-	}
-	else {
-		CQ_sendPrivateMsg(Util::AC, number, msg);
-	}
+#ifdef _DEBUG  
+	string aa = msg;
+	cout << "私聊：" << aa << endl;
+#else
+	CQ_sendPrivateMsg(Util::AC, number, msg);
+#endif
 }
 
 
@@ -110,11 +116,6 @@ void Util::setAC(int32_t ac)
 	Util::AC = ac;
 }
 
-void Util::setIsTest(bool value)
-{
-	Util::isTest = value;
-}
-
 
 Desk::Desk() {
 	for (int i = 0; i < 54; i++) {
@@ -130,10 +131,6 @@ Desk::Desk() {
 	this->lastCardType = "";//上位玩家得牌类
 	this->lastWeights = new vector<int>;//上位玩家的牌
 }
-
-
-
-static Desks datas;
 
 Player::Player() {
 	socre = 5000;
@@ -491,7 +488,7 @@ void Desk::sendBossCard()
 	Player *playerBoss = players[this->bossIndex];
 
 	this->msg << "[CQ:at,qq=" << playerBoss->number << "] "
-		<< "是地主底牌是："
+		<< "是地主,底牌是："
 		<< "[" << this->cards[53] << "]"
 		<< "[" << this->cards[52] << "]"
 		<< "[" << this->cards[51] << "]"
@@ -590,7 +587,7 @@ void Desk::play(int64_t playNum, vector<string> list)
 		player->listCards();
 
 		if (player->card.size() < 3) {
-			this->at(this->lastPlayIndex);
+			this->at(player->number);
 			this->msg << "仅剩下" << player->card.size() << "张牌";
 			this->breakLine();
 		}
@@ -795,6 +792,8 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 	string msg = msgArray;
 	Util::trim(msg);
 	Util::toUpper(msg);
+
+	cout << msg << ":" << playNum << endl;
 
 	Desk *desk = datas.getOrCreatDesk(deskNum);
 

@@ -153,9 +153,6 @@
     </ClCompile>
     <ClCompile Include="TestDouDiZhu.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <Library Include="..\com.master5.doudizhu\CQP.lib" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
