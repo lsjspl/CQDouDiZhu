@@ -9,15 +9,15 @@
 项目主要结构<br>
   CQProjects.sln<br>
       --com.master5.doudizhu<br>
-        --cqp.h                               酷q官方SDK <br>
-        --appmain.h                           酷q官方SDK<br>
+        --cqp.h                               酷q官方SDK <br>
+        --appmain.h                           酷q官方SDK<br>
         --appmain.cpp                         酷q官方SDK<br>
-        --game.h                              游戏<br>
+        --game.h                              游戏<br>
         --game.cpp                            游戏<br>
-        --com.master5.doudizhu.json           酷q官方配置<br>
-        --CQP.lib                             酷q官方SDK<br>
+        --com.master5.doudizhu.json           酷q官方配置<br>
+        --CQP.lib                             酷q官方SDK<br>
       --TestDouDiZhu<br>
-        --TestDouDiZhu.cpp                    测试<br>
+        --TestDouDiZhu.cpp                   测试<br>
 解决方案下包括两个项目：<br>
 com.master5.doudizhu 和 TestDouDiZhu<br>
 com.master5.doudizhu 为插件项目 请使用release编译<br>
