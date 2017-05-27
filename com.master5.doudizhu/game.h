@@ -1,6 +1,10 @@
 
 #include "stdafx.h"
 #include "string"
+#ifdef _DEBUG 
+#else
+#include "cqp.h"
+#endif 
 #include <time.h>
 #include <vector>
 #include <algorithm>
@@ -54,9 +58,12 @@ public:
 	vector<string> card;
 	int32_t socre;
 	bool isReady;
+	bool isOpenCard;//Ã÷ÅÆ×´Ì¬
+	bool isSurrender;//Í¶½µ×´Ì¬
 
 	void sendMsg();
 	void listCards();
+
 	void breakLine();
 };
 
@@ -96,6 +103,8 @@ public:
 	void play(int64_t playNum, string msg);
 	void play(int64_t playNum, vector<string> list);//³öÅÆ
 	void discard(int64_t playNum);
+	void surrender(int64_t playNum);//Í¶½µ
+	void openCard(int64_t playNum);//Ã÷ÅÆ
 
 	void at(int64_t playNum);
 	void breakLine();
@@ -107,6 +116,7 @@ public:
 	string getMycardType(vector<string> list, vector<int> *Weights);
 	void sendMsg();
 	void sendPlayerMsg();
+	void listCardsOnDesk(Player* player);
 
 };
 

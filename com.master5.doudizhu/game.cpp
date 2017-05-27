@@ -1,14 +1,4 @@
 #include "stdafx.h"
-#include "string"
-#ifdef _DEBUG 
-#else
-#include "cqp.h"
-#endif 
-#include <time.h>
-#include <vector>
-#include <algorithm>
-#include <iostream>
-#include <sstream>
 #include "game.h"
 using namespace std;
 
@@ -133,8 +123,10 @@ Desk::Desk() {
 }
 
 Player::Player() {
-	socre = 5000;
-	isReady = false;
+	this->socre = 5000;
+	this->isReady = false;
+	this->isOpenCard = false;
+	this->isSurrender = false;
 }
 void Player::sendMsg()
 {
@@ -585,6 +577,13 @@ void Desk::play(int64_t playNum, vector<string> list)
 
 
 		player->listCards();
+		
+		if (player->isOpenCard) {
+			this->at(player->number);
+			this->msg<<"明牌：";
+			this->listCardsOnDesk(player);
+			this->breakLine();
+		}
 
 		if (player->card.size() < 3) {
 			this->at(player->number);
@@ -633,6 +632,58 @@ void Desk::discard(int64_t playNum)
 	this->breakLine();
 }
 
+void Desk::surrender(int64_t playNum)
+{
+	int index = this->getPlayer(playNum);
+	if (index == -1 || this->state!= STATE_GAMEING) {
+		return;
+	}
+
+	Player *player = this->players[index];
+
+	player->isSurrender = true;
+
+	this->at(playNum);
+	this->msg << "弃牌";
+	this->breakLine();
+	
+	for (size_t i = 0; i < this->players.size();i++) {
+		if (players[i]->isSurrender) {
+			if (i==this->bossIndex || i!=index) {
+				this->gameOver(this->number);
+				return;
+			}
+		}
+	}
+
+	if (this->nextPlayIndex==index) {
+		this->setNextPlayerIndex();
+	}
+
+}
+
+void Desk::openCard(int64_t playNum)
+{
+
+	int index = this->getPlayer(playNum);
+	if (index == -1 || this->state != STATE_GAMEING) {
+		return;
+	}
+	Player *player = this->players[index];
+
+	player->isOpenCard = true;
+
+
+	this->at(playNum);
+	this->msg << "明牌：";
+	this->breakLine();
+
+	this->listCardsOnDesk(player);
+	this->breakLine();
+
+
+}
+
 void Desk::gameOver(int64_t number)
 {
 	int index = datas.getDesk(number);
@@ -672,7 +723,7 @@ void Desk::commandList()
 		<< 5 << " " << "开始游戏：是否开始游戏\r\n"
 		<< 6 << " " << "下桌：退出游戏，只能在准备环节使用\r\n"
 		<< 7 << " " << "玩家列表：当前在游戏中得玩家信息\r\n"
-		<< 8 << " " << "记牌器：显示已经出过的牌\r\n";
+		<< 8 << " " << "记牌器：显示已经出过的牌";
 	this->breakLine();
 }
 
@@ -828,6 +879,12 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 	else if (msg == "不抢") {
 		desk->dontBoss(playNum);
 	}
+	else if (msg == "明牌") {
+		desk->openCard(playNum);
+	}
+	else if (msg == "投降") {
+		desk->surrender(playNum);
+	}
 	else if (msg == "记牌器") {
 		desk->msg << "未开发完成";
 	}
@@ -841,8 +898,14 @@ void Player::listCards()
 	for (unsigned m = 0; m < this->card.size(); m++) {
 		this->msg << "[" << this->card.at(m) << "]";
 	}
-	this->breakLine();
 
+}
+
+void Desk::listCardsOnDesk(Player* player)
+{
+	for (unsigned m = 0; m < player->card.size(); m++) {
+		this->msg << "[" << player->card.at(m) << "]";
+	}
 }
 
 void Player::breakLine()
