@@ -79,12 +79,12 @@ public:
 
 	int state;
 	int lastPlayIndex;//当前谁出得牌
-	int nextPlayIndex;//该谁出牌
+	int currentPlayIndex;//该谁出牌
 	int bossIndex;//谁是地主
 
 	vector<string> lastCard;//上位玩家的牌
 	string lastCardType;//上位玩家得牌类
-	vector<int> *lastWeights;//上位玩家的牌
+	vector<int> *lastWeights;//上位玩家的牌的权重
 
 	stringstream msg;
 

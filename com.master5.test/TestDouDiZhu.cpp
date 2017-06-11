@@ -83,8 +83,8 @@ void rapidjson_test_char()
 
 int main() {
 
-	//testGame();
-	rapidjson_test_char();
+	testGame();
+	//rapidjson_test_char();
 	system("pause");
 
 
