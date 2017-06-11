@@ -173,7 +173,13 @@ void Desk::listPlayers(int type)
 {
 
 	bool hasType = (type & 1) == 1;
-	bool hasOwn = ((type >> 1) & 1) == 1;
+	bool hasWin = ((type >> 1) & 1) == 1;
+
+	bool isFarmerWin = false;
+
+	if (hasWin) {
+		isFarmerWin =  this->players[bossIndex]->isSurrender || this->bossIndex == this->currentPlayIndex;
+	}
 
 	for (unsigned i = 0; i < this->players.size(); i++) {
 		this->msg << i + 1 << ":";
@@ -182,12 +188,12 @@ void Desk::listPlayers(int type)
 		}
 
 		this->msg << "[CQ:at,qq=" << this->players[i]->number << "]";
-		if (hasOwn) {
-			if (this->bossIndex == this->currentPlayIndex && !this->players[bossIndex]->isSurrender) {//如果是地主赢了
-				this->msg  << "["  << (i == this->bossIndex ? "胜利" : "失败")  << "]";
+		if (hasWin) {
+			if (isFarmerWin) {//如果是农民赢了
+				this->msg << "[" << (i == this->bossIndex ? "失败" : "胜利") << "]";
 			}
 			else {
-				this->msg << "[" << (i == this->bossIndex ? "失败" : "胜利") << "]";
+				this->msg  << "["  << (i == this->bossIndex ? "胜利" : "失败")  << "]";
 			}
 		}
 
@@ -651,11 +657,6 @@ void Desk::surrender(int64_t playNum)
 
 	player->isSurrender = true;
 
-	this->at(playNum);
-	this->msg << "弃牌";
-	this->breakLine();
-
-
 	for (size_t i = 0; i < this->players.size();i++) {
 		if (players[i]->isSurrender) {
 			if (i==this->bossIndex || i!=index) {
@@ -671,7 +672,22 @@ void Desk::surrender(int64_t playNum)
 	}
 
 	if (this->currentPlayIndex == index) {
+		this->msg << "上回合：" << this->lastCardType;
+		for (unsigned m = 0; m < this->lastCard.size(); m++) {
+			this->msg << "[" << this->lastCard.at(m) << "]";
+		}
+		this->breakLine();
+		this->msg << "上位玩家：弃牌";
+		this->breakLine();
 		this->setNextPlayerIndex();
+		this->at(this->players[this->currentPlayIndex]->number);
+		this->msg << "请出牌";
+		this->breakLine();
+	}
+	else {
+		this->at(playNum);
+		this->msg << "弃牌";
+		this->breakLine();
 	}
 
 }
@@ -737,8 +753,9 @@ void Desk::commandList()
 		<< 5 << " " << "开始游戏：是否开始游戏\r\n"
 		<< 6 << " " << "下桌：退出游戏，只能在准备环节使用\r\n"
 		<< 7 << " " << "玩家列表：当前在游戏中得玩家信息\r\n"
-		<< 8 << " " << "记牌器：显示已经出过的牌"
-		<< 9 << " " << "结束游戏:结束游戏";
+		<< 8 << " " << "记牌器：显示已经出过的牌\r\n"
+		<< 9 << " " << "弃牌:放弃本局游戏，当地主或者两名农民弃牌游戏结束\r\n"
+		<< 10 << " " << "结束游戏:结束游戏";
 	this->breakLine();
 }
 
