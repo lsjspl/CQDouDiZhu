@@ -31,13 +31,43 @@ void Util::sendPrivateMsg(int64_t number, const char* msg) {
 }
 
 
+//将string转换成wstring  
+wstring Util::string2wstring(string str)
+{
+	wstring result;
+	//获取缓冲区大小，并申请空间，缓冲区大小按字符计算  
+	int len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), str.size(), NULL, 0);
+	TCHAR* buffer = new TCHAR[len + 1];
+	//多字节编码转换成宽字节编码  
+	MultiByteToWideChar(CP_ACP, 0, str.c_str(), str.size(), buffer, len);
+	buffer[len] = '\0';             //添加字符串结尾  
+									//删除缓冲区并返回值  
+	result.append(buffer);
+	delete[] buffer;
+	return result;
+}
 
+//将wstring转换成string  
+string Util::wstring2string(wstring wstr)
+{
+	string result;
+	//获取缓冲区大小，并申请空间，缓冲区大小事按字节计算的  
+	int len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), wstr.size(), NULL, 0, NULL, NULL);
+	char* buffer = new char[len + 1];
+	//宽字节编码转换成多字节编码  
+	WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), wstr.size(), buffer, len, NULL, NULL);
+	buffer[len] = '\0';
+	//删除缓冲区并返回值  
+	result.append(buffer);
+	delete[] buffer;
+	return result;
+}
 
-int Util::findAndRemove(vector<string> &dest, string str) {
+int Util::findAndRemove(vector<wstring> &dest, wstring str) {
 
 	for (unsigned i = 0; i < dest.size(); i++) {
 		if (dest.at(i) == str) {
-			vector<string>::iterator it = dest.begin() + i;
+			vector<wstring>::iterator it = dest.begin() + i;
 			dest.erase(it);
 			return i;
 		}
@@ -45,7 +75,7 @@ int Util::findAndRemove(vector<string> &dest, string str) {
 	return -1;
 }
 
-int Util::find(vector<string> &dest, string str) {
+int Util::find(vector<wstring> &dest, wstring str) {
 
 	for (unsigned i = 0; i < dest.size(); i++) {
 		if (dest.at(i) == str) {
@@ -55,7 +85,7 @@ int Util::find(vector<string> &dest, string str) {
 	return -1;
 }
 
-int Util::findFlag(string str)
+int Util::findFlag(wstring str)
 {
 
 	for (int i = 0; i < 15; i++) {
@@ -77,19 +107,19 @@ int Util::asc(int a, int b)
 	return a < b;
 }
 
-bool Util::compareCard(const string &carda, const string &cardb)
+bool Util::compareCard(const wstring &carda, const wstring &cardb)
 {
 	return findFlag(carda) < findFlag(cardb);
 }
 
 
-void Util::trim(string &s)
+void Util::trim(wstring &s)
 {
 
 	int index = 0;
 	if (!s.empty())
 	{
-		while ((index = s.find(' ', index)) != string::npos)
+		while ((index = s.find(' ', index)) != wstring::npos)
 		{
 			s.erase(index, 1);
 		}
@@ -97,7 +127,7 @@ void Util::trim(string &s)
 
 }
 
-void Util::toUpper(string &str) {
+void Util::toUpper(wstring &str) {
 	transform(str.begin(), str.end(), str.begin(), ::toupper);
 }
 
@@ -117,9 +147,12 @@ Desk::Desk() {
 	this->currentPlayIndex = -1;//该谁出牌
 	this->bossIndex = -1;//谁是地主
 
-	vector<string> lastCard;//上位玩家的牌
-	this->lastCardType = "";//上位玩家得牌类
+	vector<wstring> lastCard;//上位玩家的牌
+	this->lastCardType = L"";//上位玩家得牌类
 	this->lastWeights = new vector<int>;//上位玩家的牌
+
+	this->whoIsWinner = 0;
+
 }
 
 Player::Player() {
@@ -130,7 +163,7 @@ Player::Player() {
 }
 void Player::sendMsg()
 {
-	string tmp = this->msg.str();
+	wstring tmp = this->msg.str();
 	if (tmp.empty()) {
 		return;
 	}
@@ -138,18 +171,19 @@ void Player::sendMsg()
 	if (tmp[length - 2] == '\r' && tmp[length - 1] == '\n') {
 		tmp = tmp.substr(0, length - 2);
 	}
-	Util::sendPrivateMsg(this->number, tmp.data());
-	this->msg.str("");
+
+	Util::sendPrivateMsg(this->number, Util::wstring2string(tmp).data());
+	this->msg.str(L"");
 }
 
 void Desk::at(int64_t playNum)
 {
-	this->msg << "[CQ:at,qq=" << playNum << "]";
+	this->msg << L"[CQ:at,qq=" << playNum << L"]";
 }
 
 void Desk::breakLine()
 {
-	this->msg << "\r\n";
+	this->msg << L"\r\n";
 }
 
 int Desk::getPlayer(int64_t number) {
@@ -164,7 +198,7 @@ int Desk::getPlayer(int64_t number) {
 
 void Desk::listPlayers()
 {
-	this->msg << "玩家:";
+	this->msg << L"玩家:";
 	this->breakLine();
 	this->listPlayers(1);
 }
@@ -175,25 +209,19 @@ void Desk::listPlayers(int type)
 	bool hasType = (type & 1) == 1;
 	bool hasWin = ((type >> 1) & 1) == 1;
 
-	bool isFarmerWin = false;
-
-	if (hasWin) {
-		isFarmerWin =  this->players[bossIndex]->isSurrender || this->bossIndex == this->currentPlayIndex;
-	}
-
 	for (unsigned i = 0; i < this->players.size(); i++) {
-		this->msg << i + 1 << ":";
+		this->msg << i + 1 << L":";
 		if (hasType) {
-			this->msg << "[" << (i == this->bossIndex && state == STATE_GAMEING ? "地主" : "农民") << "]";
+			this->msg << L"[" << (i == this->bossIndex && state == STATE_GAMEING ? L"地主" : L"农民") << L"]";
 		}
 
-		this->msg << "[CQ:at,qq=" << this->players[i]->number << "]";
+		this->msg << L"[CQ:at,qq=" << this->players[i]->number << L"]";
 		if (hasWin) {
-			if (isFarmerWin) {//如果是农民赢了
-				this->msg << "[" << (i == this->bossIndex ? "失败" : "胜利") << "]";
+			if (this->whoIsWinner==2) {//如果是农民赢了
+				this->msg << L"[" << (i == this->bossIndex ? L"失败" : L"胜利") << L"]";
 			}
 			else {
-				this->msg  << "["  << (i == this->bossIndex ? "胜利" : "失败")  << "]";
+				this->msg  << L"["  << (i == this->bossIndex ? L"胜利" : L"失败")  << L"]";
 			}
 		}
 
@@ -201,21 +229,21 @@ void Desk::listPlayers(int type)
 	}
 }
 
-bool Desk::isCanWin(int cardCount, vector<int> *weights, string type)
+bool Desk::isCanWin(int cardCount, vector<int> *weights, wstring type)
 {
 
-	if (type == "" || this->lastCardType == "王炸") {
+	if (type == L"" || this->lastCardType == L"王炸") {
 		return false;
 	}
 
-	if (this->lastCardType == "") {
+	if (this->lastCardType == L"") {
 		return true;
 	}
 
-	if (type == "王炸") {
+	if (type == L"王炸") {
 		return true;
 	}
-	if (type == "炸弹" && type != this->lastCardType) {
+	if (type == L"炸弹" && type != this->lastCardType) {
 		return true;
 	}
 
@@ -236,16 +264,16 @@ bool Desk::isCanWin(int cardCount, vector<int> *weights, string type)
 
 
 
-string Desk::getMycardType(vector<string> list, vector<int> *weights)
+wstring Desk::getMycardType(vector<wstring> list, vector<int> *weights)
 {
 	int cardCount = list.size();
 	sort(list.begin(), list.end(), Util::compareCard);
 
 	if (cardCount == 2 && Util::findFlag(list[0]) + Util::findFlag(list[1]) == 27) {//王炸
-		return "王炸";
+		return L"王炸";
 	}
 
-	vector<string> cards;
+	vector<wstring> cards;
 	vector<int> counts;
 
 	for (unsigned i = 0; i < list.size(); i++) {
@@ -277,19 +305,19 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 	sort(tmpCount.begin(), tmpCount.end(), Util::desc);
 	if (cardCount == 1) {//单牌
 		weights->push_back(Util::findFlag(cards[0]));
-		return "单牌";
+		return L"单牌";
 	}
 	if (cardCount == 2 && max == 2) {//对子
 		weights->push_back(Util::findFlag(cards[0]));
-		return "对子";
+		return L"对子";
 	}
 	if (cardCount == 3 && max == 3) {//三张
 		weights->push_back(Util::findFlag(cards[0]));
-		return "三张";
+		return L"三张";
 	}
 	if (cardCount == 4 && max == 4) {//炸弹
 		weights->push_back(Util::findFlag(cards[0]));
-		return "炸弹";
+		return L"炸弹";
 	}
 
 	if (cardCount == 4 && max == 3) {//3带1
@@ -304,7 +332,7 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 			}
 		}
 
-		return "3带1";
+		return L"3带1";
 	}
 
 	if (cardCount == 5 && max == 3 && min == 2) {//3带2
@@ -318,7 +346,7 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 			}
 		}
 
-		return "3带2";
+		return L"3带2";
 	}
 
 	if (cardCount == 6 && max == 4) {//4带2
@@ -332,7 +360,7 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 			}
 		}
 
-		return "4带2";
+		return L"4带2";
 	}
 
 	if (cardGroupCout > 2 && max == 2 && min == 2
@@ -349,7 +377,7 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 			}
 		}
 
-		return "连对";
+		return L"连对";
 	}
 
 	if (cardGroupCout > 4 && max == 1 && min == 1
@@ -366,22 +394,22 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 			}
 		}
 
-		return "顺子";
+		return L"顺子";
 	}
 
 	//飞机
 	int  planeCount = 0;
 	for (unsigned i = 0; i < counts.size() && counts[i] >= 3; i++, planeCount++);
 	if (planeCount > 1) {
-		string tmp;
+		wstring tmp;
 		if (cardCount == planeCount * 3) {
-			tmp = "飞机";
+			tmp = L"飞机";
 		}
 		else if (cardCount == planeCount * 4) {
-			tmp = "单翅飞机";
+			tmp = L"单翅飞机";
 		}
 		else if (cardCount == planeCount * 5 && min == 2) {
-			tmp = "双翅飞机";
+			tmp = L"双翅飞机";
 		}
 
 		for (int i = 0; i < planeCount; i++) {
@@ -399,19 +427,19 @@ string Desk::getMycardType(vector<string> list, vector<int> *weights)
 		int weightscount = weights->size();
 
 		if (weights->at(0) - weightscount + 1 != weights->at(weightscount - 1)) {
-			return "";
+			return L"";
 		}
 
 		return tmp;
 	}
-	return "";
+	return L"";
 }
 
 
 void Desk::sendMsg()
 {
 
-	string tmp = this->msg.str();
+	wstring tmp = this->msg.str();
 	if (tmp.empty()) {
 		return;
 	}
@@ -419,8 +447,8 @@ void Desk::sendMsg()
 	if (tmp[length - 2] == '\r' && tmp[length - 1] == '\n') {
 		tmp = tmp.substr(0, length - 2);
 	}
-	Util::sendGroupMsg(this->number, tmp.data());
-	this->msg.str("");
+	Util::sendGroupMsg(this->number, Util::wstring2string(tmp).data());
+	this->msg.str(L"");
 }
 
 void Desk::sendPlayerMsg()
@@ -448,7 +476,7 @@ void Desk::creataBoss() {
 	this->bossIndex = index;
 	this->currentPlayIndex = index;
 	this->at(this->players[index]->number);
-	this->msg << "你是否要抢地主";
+	this->msg << L"你是否要抢地主";
 	this->breakLine();
 }
 
@@ -458,6 +486,8 @@ void Desk::getBoss(int64_t playerNum)
 	if (this->state == STATE_BOSSING && this->currentPlayIndex == index) {
 
 		this->bossIndex = index;
+		this->currentPlayIndex = index;
+		this->lastPlayIndex = index;
 		sendBossCard();
 	}
 }
@@ -473,10 +503,10 @@ void Desk::dontBoss(int64_t playerNum)
 			this->sendBossCard();
 		}
 		else {
-			this->msg << "[CQ:at,qq=" << this->players[index]->number << "] "
-				<< "不抢，"
-				<< "[CQ:at,qq=" << this->players[currentPlayIndex]->number << "] "
-				<< "你是否要抢地主";
+			this->msg << L"[CQ:at,qq=" << this->players[index]->number << L"] "
+				<< L"不抢，"
+				<< L"[CQ:at,qq=" << this->players[currentPlayIndex]->number << L"] "
+				<< L"你是否要抢地主";
 		}
 	}
 }
@@ -485,12 +515,12 @@ void Desk::sendBossCard()
 {
 	Player *playerBoss = players[this->bossIndex];
 
-	this->msg << "[CQ:at,qq=" << playerBoss->number << "] "
-		<< "是地主,底牌是："
-		<< "[" << this->cards[53] << "]"
-		<< "[" << this->cards[52] << "]"
-		<< "[" << this->cards[51] << "]"
-		<< "请出牌";
+	this->msg << L"[CQ:at,qq=" << playerBoss->number << L"] "
+		<< L"是地主,底牌是："
+		<< L"[" << this->cards[53] << L"]"
+		<< L"[" << this->cards[52] << L"]"
+		<< L"[" << this->cards[51] << L"]"
+		<< L"请出牌";
 	this->breakLine();
 
 	for (int i = 0; i < 3; i++) {
@@ -498,47 +528,35 @@ void Desk::sendBossCard()
 	}
 	sort(playerBoss->card.begin(), playerBoss->card.end(), Util::compareCard);
 
-	playerBoss->msg << "你是地主，收到底牌：";
+	playerBoss->msg << L"你是地主，收到底牌：";
 	for (unsigned m = 0; m < playerBoss->card.size(); m++) {
-		playerBoss->msg << "[" << playerBoss->card.at(m) << "]";
+		playerBoss->msg << L"[" << playerBoss->card.at(m) << L"]";
 	}
 	playerBoss->breakLine();
 
 	state = STATE_GAMEING;
 }
 
-void Desk::play(int64_t playNum, string msg)
+void Desk::play(int64_t playNum, wstring msg)
 {
 
 	int length = msg.length();
-	char *msgs = new char[length];
-	strncpy(msgs, msg.data(), length);
-	vector<string> msglist;
+	vector<wstring> msglist;
 
-	stringstream data;
-	string msgFindTmp;
-	for (int i = 2; i < length; i++) {
-
-		data << msgs[i];
-		msgFindTmp = msgs;
-		int gIndex = msgFindTmp.find("鬼");
-		int wIndex = msgFindTmp.find("王");
-		int tenIndex = msgFindTmp.find("10");
-		if (i == gIndex || i == wIndex || i == tenIndex) {
-			data << msgs[i + 1];
-			msgs[i++] = -1;
-			msgs[i] = -1;
+	for (int i = 1; i < length; i++) {
+		wstring tmp = msg.substr(i, 1);
+		if (tmp == L"1") {
+			tmp=msg.substr(i, 2);
+			i++;
 		}
-
-		msglist.push_back(data.str());
-		data.str("");
+		msglist.push_back(tmp);
 	}
 
 	this->play(playNum, msglist);
 
 }
 
-void Desk::play(int64_t playNum, vector<string> list)
+void Desk::play(int64_t playNum, vector<wstring> list)
 {
 
 	int playIndex = this->getPlayer(playNum);
@@ -548,31 +566,32 @@ void Desk::play(int64_t playNum, vector<string> list)
 	}
 
 	Player *player = this->players[playIndex];
-	vector<string> mycardTmp(player->card);
+	vector<wstring> mycardTmp(player->card);
 
 	int cardCount = list.size();
 
 	for (int i = 0; i < cardCount; i++) {
 		if (Util::findAndRemove(mycardTmp, list[i]) == -1) {
-			this->msg << "你就没有你出的牌，会不会玩？";
+			this->msg << L"你就没有你出的牌，会不会玩？";
 			return;
 		}
 	}
 
 	vector<int> *weights = new vector<int>;
 
-	string type = this->getMycardType(list, weights);
+	wstring type = this->getMycardType(list, weights);
 
 	bool isCanWin = this->isCanWin(cardCount, weights, type);
 
 	if (isCanWin) {
 
 		if (player->card.size() == 0) {//赢了。
-			this->msg << "游戏结束";
+			this->whoIsWinner = this->bossIndex == this->currentPlayIndex ? 1 : 2;
+			this->msg << L"游戏结束";
 			this->breakLine();
 			this->listPlayers(3);
 
-			this->msg << (this->bossIndex == this->currentPlayIndex ? "地主赢了" : "农民赢了");
+			this->msg << (this->whoIsWinner==1 ? L"地主赢了" : L"农民赢了");
 			this->gameOver(this->number);
 			return;
 		}
@@ -587,20 +606,20 @@ void Desk::play(int64_t playNum, vector<string> list)
 		
 		if (player->isOpenCard) {
 			this->at(player->number);
-			this->msg<<"明牌：";
+			this->msg<< L"明牌：";
 			this->listCardsOnDesk(player);
 			this->breakLine();
 		}
 
 		if (player->card.size() < 3) {
 			this->at(player->number);
-			this->msg << "仅剩下" << player->card.size() << "张牌";
+			this->msg << L"仅剩下" << player->card.size() << L"张牌";
 			this->breakLine();
 		}
 
-		this->msg << "上回合：" << this->lastCardType;
+		this->msg << L"上回合：" << this->lastCardType;
 		for (unsigned m = 0; m < this->lastCard.size(); m++) {
-			this->msg << "[" << this->lastCard.at(m) << "]";
+			this->msg << L"[" << this->lastCard.at(m) << L"]";
 		}
 		this->breakLine();
 		this->setNextPlayerIndex();
@@ -612,11 +631,11 @@ void Desk::play(int64_t playNum, vector<string> list)
 		}
 
 		this->at(this->players[this->currentPlayIndex]->number);
-		this->msg << "请出牌";
+		this->msg << L"请出牌";
 		this->breakLine();
 	}
 	else {
-		this->msg << "别瞎几把出牌";
+		this->msg << L"别瞎几把出牌";
 		this->breakLine();
 	}
 }
@@ -628,21 +647,21 @@ void Desk::discard(int64_t playNum)
 	}
 
 	if (this->currentPlayIndex == this->lastPlayIndex) {
-		this->msg << "过过过过你妹，会不会玩，你不能过牌了";
+		this->msg << L"过过过过你妹，会不会玩，你不能过牌了";
 		return;
 	}
 
 
-	this->msg << "上回合：" << this->lastCardType;
+	this->msg << L"上回合：" << this->lastCardType;
 	for (unsigned m = 0; m < this->lastCard.size(); m++) {
-		this->msg << "[" << this->lastCard.at(m) << "]";
+		this->msg << L"[" << this->lastCard.at(m) << L"]";
 	}
 	this->breakLine();
-	this->msg << "上位玩家：过牌";
+	this->msg << L"上位玩家：过牌";
 	this->breakLine();
 	this->setNextPlayerIndex();
 	this->at(this->players[this->currentPlayIndex]->number);
-	this->msg << "请出牌";
+	this->msg << L"请出牌";
 	this->breakLine();
 }
 
@@ -660,11 +679,14 @@ void Desk::surrender(int64_t playNum)
 	for (size_t i = 0; i < this->players.size();i++) {
 		if (players[i]->isSurrender) {
 			if (i==this->bossIndex || i!=index) {
-				this->msg << "游戏结束";
+
+				this->whoIsWinner = this->bossIndex == i ? 2 : 1;
+
+				this->msg << L"游戏结束";
 				this->breakLine();
 				this->listPlayers(3);
 
-				this->msg << (this->bossIndex == i ? "农民赢了" : "地主赢了"  );
+				this->msg << (this->whoIsWinner ==1 ? L"地主赢了" : L"农民赢了"  );
 				this->gameOver(this->number);
 				return;
 			}
@@ -672,21 +694,21 @@ void Desk::surrender(int64_t playNum)
 	}
 
 	if (this->currentPlayIndex == index) {
-		this->msg << "上回合：" << this->lastCardType;
+		this->msg << L"上回合：" << this->lastCardType;
 		for (unsigned m = 0; m < this->lastCard.size(); m++) {
-			this->msg << "[" << this->lastCard.at(m) << "]";
+			this->msg << L"[" << this->lastCard.at(m) << L"]";
 		}
 		this->breakLine();
-		this->msg << "上位玩家：弃牌";
+		this->msg << L"上位玩家：弃牌";
 		this->breakLine();
 		this->setNextPlayerIndex();
 		this->at(this->players[this->currentPlayIndex]->number);
-		this->msg << "请出牌";
+		this->msg << L"请出牌";
 		this->breakLine();
 	}
 	else {
 		this->at(playNum);
-		this->msg << "弃牌";
+		this->msg << L"弃牌";
 		this->breakLine();
 	}
 
@@ -705,7 +727,7 @@ void Desk::openCard(int64_t playNum)
 
 
 	this->at(playNum);
-	this->msg << "明牌：";
+	this->msg << L"明牌：";
 	this->breakLine();
 
 	this->listCardsOnDesk(player);
@@ -732,30 +754,30 @@ void Desk::exit(int64_t number)
 		if (index != -1) {
 			vector<Player*>::iterator it = this->players.begin() + index;
 			this->players.erase(it);
-			this->msg << "退出成功";
+			this->msg << L"退出成功";
 			this->breakLine();
 		}
 
 	}
 	else {
-		this->msg << "游戏已经开始不能退出";
+		this->msg << L"游戏已经开始不能退出";
 		this->breakLine();
 	}
 }
 
 void Desk::commandList()
 {
-	this->msg << "=    命令列表    =\r\n"
-		<< 1 << " " << "上桌：加入游戏\r\n"
-		<< 2 << " " << "出：出牌 比如 出23456\r\n"
-		<< 3 << " " << "过：过牌\r\n"
-		<< 4 << " " << "抢地主 | 不抢：是否抢地主\r\n"
-		<< 5 << " " << "开始游戏：是否开始游戏\r\n"
-		<< 6 << " " << "下桌：退出游戏，只能在准备环节使用\r\n"
-		<< 7 << " " << "玩家列表：当前在游戏中得玩家信息\r\n"
-		<< 8 << " " << "记牌器：显示已经出过的牌\r\n"
-		<< 9 << " " << "弃牌:放弃本局游戏，当地主或者两名农民弃牌游戏结束\r\n"
-		<< 10 << " " << "结束游戏:结束游戏";
+	this->msg << L"=    命令列表    =\r\n"
+		<< 1 << L" " << L"上桌：加入游戏\r\n"
+		<< 2 << L" " << L"出：出牌 比如 出23456\r\n"
+		<< 3 << L" " << L"过：过牌\r\n"
+		<< 4 << L" " << L"抢地主 | 不抢：是否抢地主\r\n"
+		<< 5 << L" " << L"开始游戏：是否开始游戏\r\n"
+		<< 6 << L" " << L"下桌：退出游戏，只能在准备环节使用\r\n"
+		<< 7 << L" " << L"玩家列表：当前在游戏中得玩家信息\r\n"
+		<< 8 << L" " << L"记牌器：显示已经出过的牌\r\n"
+		<< 9 << L" " << L"弃牌:放弃本局游戏，当地主或者两名农民弃牌游戏结束\r\n"
+		<< 10 << L" " << L"结束游戏:结束游戏";
 	this->breakLine();
 }
 
@@ -766,7 +788,7 @@ void Desk::setNextPlayerIndex()
 	if (this->currentPlayIndex == this->lastPlayIndex) {
 		this->lastCard.clear();
 		this->lastWeights->clear();
-		this->lastCardType = "";
+		this->lastCardType = L"";
 	}
 
 
@@ -785,7 +807,7 @@ void Desk::deal() {
 		sort(player->card.begin(), player->card.end(), Util::compareCard);
 
 		for (unsigned m = 0; m < player->card.size(); m++) {
-			player->msg << "[" << player->card.at(m) << "]";
+			player->msg << L"[" << player->card.at(m) << L"]";
 		}
 
 		player->breakLine();
@@ -810,13 +832,13 @@ void Desk::join(int64_t playNum)
 	int playIndex = this->getPlayer(playNum);
 
 	if (playIndex != -1) {
-		this->msg << "[CQ:at,qq=" << playNum << "] 已经加入游戏";
+		this->msg << L"[CQ:at,qq=" << playNum << L"] 已经加入游戏";
 		this->breakLine();
 		return;
 	}
 
 	if (this->players.size() == 3) {
-		this->msg << "[CQ:at,qq=" << playNum << "] 人数已满";
+		this->msg << L"[CQ:at,qq=" << playNum << L"] 人数已满";
 		this->breakLine();
 		return;
 	}
@@ -825,11 +847,11 @@ void Desk::join(int64_t playNum)
 	player->number = playNum;
 	this->players.push_back(player);
 
-	this->msg << "[CQ:at,qq=" << playNum << "] "
-		<< "加入成功，已有玩家:" << this->players.size() << "个";
+	this->msg << L"[CQ:at,qq=" << playNum << L"] "
+		<< L"加入成功，已有玩家:" << this->players.size() << L"个";
 	this->breakLine();
 	if (this->players.size() == 3) {
-		this->msg << "请输入[开始游戏]";
+		this->msg << L"请输入[开始游戏]";
 		this->breakLine();
 	}
 }
@@ -852,7 +874,7 @@ Desk* Desks::getOrCreatDesk(int64_t deskNum) {
 void Desk::startGame() {
 	if (this->players.size() == 3 && this->state == STATE_WAIT) {
 		this->state = STATE_START;
-		this->msg << "游戏开始";
+		this->msg << L"游戏开始";
 		this->breakLine();
 
 		this->listPlayers();
@@ -864,7 +886,7 @@ void Desk::startGame() {
 		this->creataBoss();
 	}
 	else {
-		this->msg << "没有足够的玩家或者已经开始游戏";
+		this->msg << L"没有足够的玩家或者已经开始游戏";
 		this->breakLine();
 		this->listPlayers();
 	}
@@ -872,54 +894,54 @@ void Desk::startGame() {
 
 void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 
-	string msg = msgArray;
+	string tmp= msgArray;
+
+	wstring msg = Util::string2wstring(tmp);
 	Util::trim(msg);
 	Util::toUpper(msg);
 
-	cout << msg << ":" << playNum << endl;
-
 	Desk *desk = datas.getOrCreatDesk(deskNum);
 
-	if (msg == "上桌" || msg == "JOIN") {
+	if (msg == L"上桌" || msg == L"JOIN") {
 		desk->join(playNum);
 	}
-	else if (msg.find("出") == 0 || msg.find("出牌") == 0) {//出牌阶段
+	else if (msg.find(L"出") == 0 || msg.find(L"出牌") == 0) {//出牌阶段
 		desk->play(playNum, msg);
 	}
-	else if (msg == "过" || msg == "过牌" || msg == "不出" || msg == "不要" || msg == "PASS") {//跳过出牌阶段
+	else if (msg == L"过" || msg == L"过牌" || msg == L"不出" || msg == L"不要" || msg == L"PASS") {//跳过出牌阶段
 		desk->discard(playNum);
 	}
-	else if (msg == "退出游戏" || msg == "退桌" || msg == "下桌") {//结束游戏
+	else if (msg == L"退出游戏" || msg == L"退桌" || msg == L"下桌") {//结束游戏
 		desk->exit(playNum);
 	}
-	else if (msg == "命令列表") {
+	else if (msg == L"命令列表") {
 		desk->commandList();
 	}
 	//else if ((msg == "结束游戏" || msg == "GAMEOVER") && playNum == 895252155) {//结束游戏
-	 else if (msg == "结束游戏" || msg == "GAMEOVER") {//结束游戏
+	 else if (msg == L"结束游戏" || msg == L"GAMEOVER") {//结束游戏
 		desk->gameOver(deskNum);
 		return;
 	}
-	else if (msg == "玩家列表") {
+	else if (msg == L"玩家列表") {
 		desk->listPlayers();
 	}
-	else if (msg == "开始游戏") {
+	else if (msg == L"开始游戏") {
 		desk->startGame();
 	}
-	else if (msg == "抢地主" || msg == "抢") {
+	else if (msg == L"抢地主" || msg == L"抢") {
 		desk->getBoss(playNum);
 	}
-	else if (msg == "不抢") {
+	else if (msg == L"不抢") {
 		desk->dontBoss(playNum);
 	}
-	else if (msg == "明牌") {
+	else if (msg == L"明牌") {
 		desk->openCard(playNum);
 	}
-	else if (msg == "弃牌") {
+	else if (msg == L"弃牌") {
 		desk->surrender(playNum);
 	}
-	else if (msg == "记牌器") {
-		desk->msg << "未开发完成";
+	else if (msg == L"记牌器") {
+		desk->msg << L"未开发完成";
 	}
 
 	desk->sendMsg();
@@ -929,7 +951,7 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 void Player::listCards()
 {
 	for (unsigned m = 0; m < this->card.size(); m++) {
-		this->msg << "[" << this->card.at(m) << "]";
+		this->msg << L"[" << this->card.at(m) << L"]";
 	}
 
 }
@@ -937,11 +959,11 @@ void Player::listCards()
 void Desk::listCardsOnDesk(Player* player)
 {
 	for (unsigned m = 0; m < player->card.size(); m++) {
-		this->msg << "[" << player->card.at(m) << "]";
+		this->msg << L"[" << player->card.at(m) << L"]";
 	}
 }
 
 void Player::breakLine()
 {
-	this->msg << "\r\n";
+	this->msg << L"\r\n";
 }
