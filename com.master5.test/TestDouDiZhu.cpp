@@ -42,27 +42,15 @@ string wstring2string(wstring wstr)
 	return result;
 }
 int main() {
-	WritePrivateProfileString(_T("895252155"), _T("用户名"), _T("nihao"), _T("./nihao.ini"));
-	TCHAR UserName[20];
-	GetPrivateProfileString(_T("895252155"), _T("用户名"), _T(""), UserName,20, _T("./nihao.ini"));
+
+
+	Config::writeAdmin(22234444);
 	
+	//wcout << tmp << endl;
+	Config::writeScore(1111,333);
 
-	wstring ssw = L"33";
-
-	stringstream sm;
-	sm << ssw.c_str();
-
-	cout << wstring2string(ssw) << endl;
-
-	char *ss = "sss";
-
-	wstringstream msg;
-	msg << ss;
-	
-	wcout << msg.str() << endl;
-
-
-	testGame();
+	cout << Config::readScore(1111);
+	//testGame();
 	system("pause");
 
 

@@ -6,6 +6,8 @@ int Util::AC = 0;
 
 static Desks datas;
 
+wstring Config::configPath = L".\\config.ini";
+
  void Util::testMsg(int64_t desknum, int64_t playNum,const char * str) {
 	int index = datas.desks[0]->currentPlayIndex;
 	datas.game(desknum, playNum + index, str);
@@ -966,4 +968,51 @@ void Desk::listCardsOnDesk(Player* player)
 void Player::breakLine()
 {
 	this->msg << L"\r\n";
+}
+
+Config::Config()
+{
+}
+
+wstring Config::readAdmin()
+{
+	WCHAR tmp[15];
+	GetPrivateProfileString(L"admin", L"admin", L"", tmp, 15, Config::configPath.c_str());
+	return wstring(tmp);
+}
+
+int Config::writeAdmin(int64_t playerNum)
+{
+	wstring model = L"score";
+	wstring key = L"admin";
+	wstringstream ss;
+	ss << playerNum;
+	wstring value = ss.str();
+	ss.str(L"");
+	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), Config::configPath.c_str());
+
+}
+
+int Config::readScore(int64_t playerNum)
+{
+	wstring model = L"score";
+	wstringstream ss;
+	ss << playerNum;
+	wstring key = ss.str();
+	ss.str(L"");
+	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0,  Config::configPath.c_str());
+}
+
+int Config::writeScore(int64_t playerNum, int score)
+{
+
+	wstring model = L"score";
+	wstringstream ss;
+	ss << playerNum;
+	wstring key = ss.str();
+	ss.str(L"");
+	ss << score;
+	wstring value = ss.str();
+	ss.str(L"");
+	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), Config::configPath.c_str());
 }

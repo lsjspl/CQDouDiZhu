@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <tchar.h>  
 using namespace std;
 static const wstring  cardDest[54] = {
 	L"¹í",L"Íõ",
@@ -49,6 +50,16 @@ public:
 	static void setAC(int32_t ac);
 	static string wstring2string(wstring wstr);
 	static wstring string2wstring(string str);
+};
+class Config {
+
+public:
+	Config();
+	static   wstring configPath;
+	static wstring readAdmin();
+	static int writeAdmin(int64_t playerNum);
+	static int readScore(int64_t playerNum);
+	static int writeScore(int64_t playerNum, int score);
 };
 
 class Player
@@ -129,4 +140,5 @@ public:
 	Desk* getOrCreatDesk(int64_t deskNum);
 	static void game(int64_t deskNum, int64_t playNum, const char *msg);
 	int getDesk(int64_t deskNum);
+	void listDesks();
 };
