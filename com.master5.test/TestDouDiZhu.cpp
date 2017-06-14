@@ -42,14 +42,10 @@ string wstring2string(wstring wstr)
 	return result;
 }
 int main() {
-
-
-	Config::writeAdmin(22234444);
-	
-	//wcout << tmp << endl;
-	Config::writeScore(1111,333);
-
-	cout << Config::readScore(1111);
+	DeleteFile(L".\\com.master5.doudizu\\a.txt");
+	//Config::getScore(11111);
+	//wstring dirName = L".\\com.master.five\\";
+	//CreateDirectory(dirName.c_str(), NULL);
 	//testGame();
 	system("pause");
 

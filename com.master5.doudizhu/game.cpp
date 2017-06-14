@@ -1,14 +1,14 @@
 #include "stdafx.h"
 #include "game.h"
+
 using namespace std;
 
 int Util::AC = 0;
 
 static Desks datas;
 
-wstring Config::configPath = L".\\config.ini";
 
- void Util::testMsg(int64_t desknum, int64_t playNum,const char * str) {
+void Util::testMsg(int64_t desknum, int64_t playNum, const char * str) {
 	int index = datas.desks[0]->currentPlayIndex;
 	datas.game(desknum, playNum + index, str);
 }
@@ -47,6 +47,11 @@ wstring Util::string2wstring(string str)
 	result.append(buffer);
 	delete[] buffer;
 	return result;
+}
+
+void Util::mkdir()
+{
+	CreateDirectory(configDir.c_str(), NULL);
 }
 
 //将wstring转换成string  
@@ -154,11 +159,11 @@ Desk::Desk() {
 	this->lastWeights = new vector<int>;//上位玩家的牌
 
 	this->whoIsWinner = 0;
+	this->score = 1000;//初始积分
 
 }
 
 Player::Player() {
-	this->socre = 5000;
 	this->isReady = false;
 	this->isOpenCard = false;
 	this->isSurrender = false;
@@ -167,6 +172,7 @@ void Player::sendMsg()
 {
 	wstring tmp = this->msg.str();
 	if (tmp.empty()) {
+		this->msg.str(L"");
 		return;
 	}
 	int length = tmp.length();
@@ -219,11 +225,25 @@ void Desk::listPlayers(int type)
 
 		this->msg << L"[CQ:at,qq=" << this->players[i]->number << L"]";
 		if (hasWin) {
-			if (this->whoIsWinner==2) {//如果是农民赢了
-				this->msg << L"[" << (i == this->bossIndex ? L"失败" : L"胜利") << L"]";
+			if (this->whoIsWinner == 2) {//如果是农民赢了
+				if (i == this->bossIndex) {
+					this->msg << L"[" << L"失败-" << this->score * 2 << L"分]";
+					Config::addScore(this->players[i]->number, -this->score * 2);
+				}
+				else {
+					this->msg << L"[" << L"胜利+" << this->score << L"分]";
+					Config::addScore(this->players[i]->number, this->score);
+				}
 			}
 			else {
-				this->msg  << L"["  << (i == this->bossIndex ? L"胜利" : L"失败")  << L"]";
+				if (i == this->bossIndex) {
+					this->msg << L"[" << L"胜利+" << this->score * 2 << L"分]";
+					Config::addScore(this->players[i]->number, this->score * 2);
+				}
+				else {
+					this->msg << L"[" << L"失败-" << this->score << L"分]";
+					Config::addScore(this->players[i]->number, -this->score);
+				}
 			}
 		}
 
@@ -548,7 +568,7 @@ void Desk::play(int64_t playNum, wstring msg)
 	for (int i = 1; i < length; i++) {
 		wstring tmp = msg.substr(i, 1);
 		if (tmp == L"1") {
-			tmp=msg.substr(i, 2);
+			tmp = msg.substr(i, 2);
 			i++;
 		}
 		msglist.push_back(tmp);
@@ -587,13 +607,21 @@ void Desk::play(int64_t playNum, vector<wstring> list)
 
 	if (isCanWin) {
 
-		if (player->card.size() == 0) {//赢了。
+		//处理积分
+		if (type == L"王炸") {
+			this->score *= 4;
+		}
+		else if (type == L"炸弹") {
+			this->score *= 2;
+		}
+
+		if (mycardTmp.size() == 0) {//赢了。
 			this->whoIsWinner = this->bossIndex == this->currentPlayIndex ? 1 : 2;
 			this->msg << L"游戏结束";
 			this->breakLine();
 			this->listPlayers(3);
 
-			this->msg << (this->whoIsWinner==1 ? L"地主赢了" : L"农民赢了");
+			this->msg << (this->whoIsWinner == 1 ? L"地主赢了" : L"农民赢了");
 			this->gameOver(this->number);
 			return;
 		}
@@ -605,10 +633,10 @@ void Desk::play(int64_t playNum, vector<wstring> list)
 		this->lastPlayIndex = this->currentPlayIndex;
 
 		player->listCards();
-		
+
 		if (player->isOpenCard) {
 			this->at(player->number);
-			this->msg<< L"明牌：";
+			this->msg << L"明牌：";
 			this->listCardsOnDesk(player);
 			this->breakLine();
 		}
@@ -625,13 +653,6 @@ void Desk::play(int64_t playNum, vector<wstring> list)
 		}
 		this->breakLine();
 		this->setNextPlayerIndex();
-
-		//如果下一个该出牌的玩家正好弃牌了 则重新set下一位玩家
-		//由于不可能大于2个人弃牌 所以下一个人一定没有弃牌
-		if (this->players[this->currentPlayIndex]->isSurrender) {
-			this->setNextPlayerIndex();
-		}
-
 		this->at(this->players[this->currentPlayIndex]->number);
 		this->msg << L"请出牌";
 		this->breakLine();
@@ -662,6 +683,7 @@ void Desk::discard(int64_t playNum)
 	this->msg << L"上位玩家：过牌";
 	this->breakLine();
 	this->setNextPlayerIndex();
+
 	this->at(this->players[this->currentPlayIndex]->number);
 	this->msg << L"请出牌";
 	this->breakLine();
@@ -670,7 +692,7 @@ void Desk::discard(int64_t playNum)
 void Desk::surrender(int64_t playNum)
 {
 	int index = this->getPlayer(playNum);
-	if (index == -1 || this->state!= STATE_GAMEING || this->players[index]->isSurrender) {
+	if (index == -1 || this->state != STATE_GAMEING || this->players[index]->isSurrender) {
 		return;
 	}
 
@@ -678,9 +700,9 @@ void Desk::surrender(int64_t playNum)
 
 	player->isSurrender = true;
 
-	for (size_t i = 0; i < this->players.size();i++) {
+	for (size_t i = 0; i < this->players.size(); i++) {
 		if (players[i]->isSurrender) {
-			if (i==this->bossIndex || i!=index) {
+			if (i == this->bossIndex || i != index) {
 
 				this->whoIsWinner = this->bossIndex == i ? 2 : 1;
 
@@ -688,7 +710,7 @@ void Desk::surrender(int64_t playNum)
 				this->breakLine();
 				this->listPlayers(3);
 
-				this->msg << (this->whoIsWinner ==1 ? L"地主赢了" : L"农民赢了"  );
+				this->msg << (this->whoIsWinner == 1 ? L"地主赢了" : L"农民赢了");
 				this->gameOver(this->number);
 				return;
 			}
@@ -736,6 +758,20 @@ void Desk::openCard(int64_t playNum)
 	this->breakLine();
 
 
+}
+
+void Desk::getPlayerInfo(int64_t playNum)
+{
+	this->at(playNum);
+	this->msg << L"积分：" << Config::readScore(playNum);
+	this->breakLine();
+}
+
+void Desk::getScore(int64_t playNum)
+{
+	this->at(playNum);
+	this->msg<< (Config::getScore(playNum)?L"么么哒给你添加积分啦":L"又输光想要分？明天来吧");
+	this->breakLine();
 }
 
 void Desk::gameOver(int64_t number)
@@ -793,6 +829,12 @@ void Desk::setNextPlayerIndex()
 		this->lastCardType = L"";
 	}
 
+	//如果下一个该出牌的玩家正好弃牌了 则重新set下一位玩家
+	//由于不可能大于2个人弃牌 所以下一个人一定没有弃牌
+	if (this->players[this->currentPlayIndex]->isSurrender) {
+		this->setNextPlayerIndex();
+	}
+
 
 }
 
@@ -841,6 +883,12 @@ void Desk::join(int64_t playNum)
 
 	if (this->players.size() == 3) {
 		this->msg << L"[CQ:at,qq=" << playNum << L"] 人数已满";
+		this->breakLine();
+		return;
+	}
+
+	if (Config::readScore(playNum) < 1) {
+		this->msg << L"[CQ:at,qq=" << playNum << L"] 没积分了你";
 		this->breakLine();
 		return;
 	}
@@ -896,7 +944,7 @@ void Desk::startGame() {
 
 void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 
-	string tmp= msgArray;
+	string tmp = msgArray;
 
 	wstring msg = Util::string2wstring(tmp);
 	Util::trim(msg);
@@ -920,7 +968,7 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 		desk->commandList();
 	}
 	//else if ((msg == "结束游戏" || msg == "GAMEOVER") && playNum == 895252155) {//结束游戏
-	 else if (msg == L"结束游戏" || msg == L"GAMEOVER") {//结束游戏
+	else if (msg == L"结束游戏" || msg == L"GAMEOVER") {//结束游戏
 		desk->gameOver(deskNum);
 		return;
 	}
@@ -945,9 +993,40 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 	else if (msg == L"记牌器") {
 		desk->msg << L"未开发完成";
 	}
+	else if (msg == L"我的信息") {
+		desk->getPlayerInfo(playNum);
+	}
+	else if (msg == L"获取积分") {
+		desk->getScore(playNum);
+	}
 
 	desk->sendMsg();
 	desk->sendPlayerMsg();
+}
+
+bool Desks::game(int64_t playNum, const char * msgArray)
+{
+	string tmp = msgArray;
+
+	wstring msg = Util::string2wstring(tmp);
+	Util::trim(msg);
+	Util::toUpper(msg);
+
+
+	bool result;
+	if (msg == L"我是管理") {
+		result = Config::IAmAdmin(playNum);
+	}
+	else if (msg == L"重置斗地主" || msg == L"初始化斗地主") {
+		result = Config::resetGame(playNum);
+	}
+	else {
+		return false;
+	}
+
+	msg = result ? L"操作成功" : L"操作失败";
+	Util::sendPrivateMsg(playNum, Util::wstring2string(msg).data());
+	return true;
 }
 
 void Player::listCards()
@@ -970,42 +1049,65 @@ void Player::breakLine()
 	this->msg << L"\r\n";
 }
 
-Config::Config()
+
+int64_t Config::readAdmin()
 {
+	wstring model = L"admin";
+	wstring key = L"admin";
+	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0, configPath.c_str());
 }
 
-wstring Config::readAdmin()
-{
+wstring Config::readString() {
 	WCHAR tmp[15];
-	GetPrivateProfileString(L"admin", L"admin", L"", tmp, 15, Config::configPath.c_str());
+	GetPrivateProfileString(L"admin", L"admin", L"", tmp, 15, configPath.c_str());
 	return wstring(tmp);
 }
 
-int Config::writeAdmin(int64_t playerNum)
+bool Config::writeAdmin(int64_t playerNum)
 {
-	wstring model = L"score";
+	wstring model = L"admin";
 	wstring key = L"admin";
 	wstringstream ss;
 	ss << playerNum;
 	wstring value = ss.str();
 	ss.str(L"");
-	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), Config::configPath.c_str());
+	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), configPath.c_str());
 
 }
 
-int Config::readScore(int64_t playerNum)
+int64_t Config::readScore(int64_t playerNum)
 {
 	wstring model = L"score";
 	wstringstream ss;
 	ss << playerNum;
 	wstring key = ss.str();
 	ss.str(L"");
-	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0,  Config::configPath.c_str());
+	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0, configPath.c_str());
 }
 
-int Config::writeScore(int64_t playerNum, int score)
+bool Config::getScore(int64_t playerNum)
 {
+	wstring model = L"time";
+	wstringstream ss;
+	ss << playerNum;
+	wstring key = ss.str();
+	ss.str(L"");
+	int lastGetScoreTime = GetPrivateProfileInt(model.c_str(), key.c_str(), 0, configPath.c_str());
+	time_t rawtime;
+	int now = time(&rawtime);
 
+	if (now > lastGetScoreTime + 24 * 3600 * 1000) {
+		Config::addScore(playerNum, 5000);
+		ss << now;
+		wstring value = ss.str();
+		ss.str(L"");
+		return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), configPath.c_str());
+	}
+	return false;
+}
+
+bool Config::writeScore(int64_t playerNum, int score)
+{
 	wstring model = L"score";
 	wstringstream ss;
 	ss << playerNum;
@@ -1014,5 +1116,21 @@ int Config::writeScore(int64_t playerNum, int score)
 	ss << score;
 	wstring value = ss.str();
 	ss.str(L"");
-	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), Config::configPath.c_str());
+	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), configPath.c_str());
+}
+
+int Config::addScore(int64_t playerNum, int score)
+{
+	int hasScore = Config::readScore(playerNum) + score;
+	return Config::writeScore(playerNum, hasScore < 0 ? 0 : hasScore);
+}
+
+bool Config::IAmAdmin(int64_t playerNum)
+{
+	return  Config::readAdmin() == 0 && Config::writeAdmin(playerNum);
+}
+
+bool Config::resetGame(int64_t playNum)
+{
+	return playNum == Config::readAdmin() && DeleteFile(configPath.c_str());
 }

@@ -46,6 +46,7 @@ CQEVENT(int32_t, Initialize, 4)(int32_t AuthCode) {
 */
 CQEVENT(int32_t, __eventStartup, 0)() {
 	Util::setAC(ac);
+	Util::mkdir();
 	return 0;
 }
 
@@ -92,6 +93,9 @@ CQEVENT(int32_t, __eventPrivateMsg, 24)(int32_t subType, int32_t sendTime, int64
 
 	//如果要回复消息，请调用酷Q方法发送，并且这里 return EVENT_BLOCK - 截断本条消息，不再继续处理  注意：应用优先级设置为"最高"(10000)时，不得使用本返回值
 	//如果不回复消息，交由之后的应用/过滤器处理，这里 return EVENT_IGNORE - 忽略本条消息
+	if (Desks::game(fromQQ, msg)) {
+		return EVENT_BLOCK;
+	}
 	return EVENT_IGNORE;
 }
 
