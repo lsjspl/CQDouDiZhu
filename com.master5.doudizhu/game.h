@@ -32,8 +32,10 @@ const int STATE_START = 1;
 const int STATE_BOSSING = 2;
 const int STATE_GAMEING = 3;
 
-const wstring configPath = L".\\app\\com.master5.doudizu\\config.ini";
-const wstring configDir = L".\\app\\com.master5.doudizu\\";
+const wstring CONFIG_PATH = L".\\app\\com.master5.doudizu\\config.ini";
+const wstring CONFIG_DIR = L".\\app\\com.master5.doudizu\\";
+
+const int CONIFG_INIT_SCORE = 20000;
 
 class Util {
 public:

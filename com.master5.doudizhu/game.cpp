@@ -51,7 +51,7 @@ wstring Util::string2wstring(string str)
 
 void Util::mkdir()
 {
-	CreateDirectory(configDir.c_str(), NULL);
+	CreateDirectory(CONFIG_DIR.c_str(), NULL);
 }
 
 //将wstring转换成string  
@@ -805,17 +805,31 @@ void Desk::exit(int64_t number)
 
 void Desk::commandList()
 {
-	this->msg << L"=    命令列表    =\r\n"
-		<< 1 << L" " << L"上桌：加入游戏\r\n"
-		<< 2 << L" " << L"出：出牌 比如 出23456\r\n"
-		<< 3 << L" " << L"过：过牌\r\n"
-		<< 4 << L" " << L"抢地主 | 不抢：是否抢地主\r\n"
-		<< 5 << L" " << L"开始游戏：是否开始游戏\r\n"
-		<< 6 << L" " << L"下桌：退出游戏，只能在准备环节使用\r\n"
-		<< 7 << L" " << L"玩家列表：当前在游戏中得玩家信息\r\n"
-		<< 8 << L" " << L"记牌器：显示已经出过的牌\r\n"
-		<< 9 << L" " << L"弃牌:放弃本局游戏，当地主或者两名农民弃牌游戏结束\r\n"
-		<< 10 << L" " << L"结束游戏:结束游戏";
+	this->msg << L"=    命令列表    ="<<"\r\n"
+		<< L"命令说明：" << "\r\n"
+		<< L"         带有[管]的命令 只能管理员使用，使用前请先设置自己为管理员，管理员只有重置游戏后能更改(也可以修改配置)" << "\r\n"
+		<< L"         带有[开发中]的命令 还未开发完成" << "\r\n"
+		<< L"         带有[B]的命令 是测试功能，可能会更改和加强" << "\r\n"
+		<< L"         带有[R]的命令 是正式功能，一般不会做更改" << "\r\n"
+		<< L"群聊命令：" << "\r\n"
+		<< L"[R]" << L"上桌：加入游戏\r\n"
+		<< L"[R]" << L"出：出牌 比如 出23456\r\n"
+		<< L"[R]" << L"过|过牌|pass：过牌\r\n"
+		<< L"[R]" << L"抢地主|不抢：是否抢地主\r\n"
+		<< L"[R]" << L"开始游戏：是否开始游戏\r\n"
+		<< L"[R]" << L"下桌：退出游戏，只能在准备环节使用\r\n"
+		<< L"[R]" << L"玩家列表：当前在游戏中得玩家信息\r\n"
+		<< L"[开发中]" << L"记牌器：显示已经出过的牌\r\n"
+		<< L"[R]" << L"弃牌：放弃本局游戏，当地主或者两名农民弃牌游戏结束"<<"\r\n"
+		<< L"[R]" << L"获取积分：获取积分，每天可获取2w分。" << "\r\n"
+		<< L"[B]" << L"我的信息：我的信息" << "\r\n"
+		<< L"私聊命令：" << "\r\n"
+		<< L"[管][B]" << L"我是管理：设置游戏管理为当前发送消息的qq管理员可进行管理命令。管理设置后不能更改" << "\r\n"
+		<< L"[管][B]" << L"重置斗地主：删除所有配置。重置后可重新设定管理员" << "\r\n"
+		<< L"[管][开发中]" << L"设置积分[积分]：设置积分的默认值，获取积分和增加积分会根据本项进行设置，不设置默认为2W，比如：设置积分123456" << "\r\n"
+		<< L"[管][开发中]" << L"结束游戏[群号]：结束指定群号的游戏，比如：结束游戏123456" << "\r\n"
+		<< L"[管][开发中]" << L"增加积分[qq号]：给指定qq增加积分，会有个默认值，比如：增加积分123456" 
+		;
 	this->breakLine();
 }
 
@@ -1054,12 +1068,12 @@ int64_t Config::readAdmin()
 {
 	wstring model = L"admin";
 	wstring key = L"admin";
-	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0, configPath.c_str());
+	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0, CONFIG_PATH.c_str());
 }
 
 wstring Config::readString() {
 	WCHAR tmp[15];
-	GetPrivateProfileString(L"admin", L"admin", L"", tmp, 15, configPath.c_str());
+	GetPrivateProfileString(L"admin", L"admin", L"", tmp, 15, CONFIG_PATH.c_str());
 	return wstring(tmp);
 }
 
@@ -1071,7 +1085,7 @@ bool Config::writeAdmin(int64_t playerNum)
 	ss << playerNum;
 	wstring value = ss.str();
 	ss.str(L"");
-	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), configPath.c_str());
+	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), CONFIG_PATH.c_str());
 
 }
 
@@ -1082,7 +1096,7 @@ int64_t Config::readScore(int64_t playerNum)
 	ss << playerNum;
 	wstring key = ss.str();
 	ss.str(L"");
-	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0, configPath.c_str());
+	return GetPrivateProfileInt(model.c_str(), key.c_str(), 0, CONFIG_PATH.c_str());
 }
 
 bool Config::getScore(int64_t playerNum)
@@ -1092,16 +1106,16 @@ bool Config::getScore(int64_t playerNum)
 	ss << playerNum;
 	wstring key = ss.str();
 	ss.str(L"");
-	int lastGetScoreTime = GetPrivateProfileInt(model.c_str(), key.c_str(), 0, configPath.c_str());
+	int lastGetScoreTime = GetPrivateProfileInt(model.c_str(), key.c_str(), 0, CONFIG_PATH.c_str());
 	time_t rawtime;
 	int now = time(&rawtime);
 
 	if (now > lastGetScoreTime + 24 * 3600 * 1000) {
-		Config::addScore(playerNum, 5000);
+		Config::addScore(playerNum, CONIFG_INIT_SCORE);
 		ss << now;
 		wstring value = ss.str();
 		ss.str(L"");
-		return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), configPath.c_str());
+		return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), CONFIG_PATH.c_str());
 	}
 	return false;
 }
@@ -1116,7 +1130,7 @@ bool Config::writeScore(int64_t playerNum, int score)
 	ss << score;
 	wstring value = ss.str();
 	ss.str(L"");
-	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), configPath.c_str());
+	return WritePrivateProfileString(model.c_str(), key.c_str(), value.c_str(), CONFIG_PATH.c_str());
 }
 
 int Config::addScore(int64_t playerNum, int score)
@@ -1132,5 +1146,5 @@ bool Config::IAmAdmin(int64_t playerNum)
 
 bool Config::resetGame(int64_t playNum)
 {
-	return playNum == Config::readAdmin() && DeleteFile(configPath.c_str());
+	return playNum == Config::readAdmin() && DeleteFile(CONFIG_PATH.c_str());
 }
