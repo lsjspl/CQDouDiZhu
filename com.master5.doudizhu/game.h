@@ -18,11 +18,6 @@ static const wstring  cardDest[54] = {
 	L"2",L"3",L"4",L"5",L"6",L"7",L"8",L"9",L"10",L"J",L"Q",L"K",L"A",
 	L"2",L"3",L"4",L"5",L"6",L"7",L"8",L"9",L"10",L"J",L"Q",L"K",L"A",
 	L"2",L"3",L"4",L"5",L"6",L"7",L"8",L"9",L"10",L"J",L"Q",L"K",L"A"
-
-	//"2","3","3","3","4","4","4","5","5","5","6","6","7","7","8","8","9","10","J","Q","K","A","¹í","Íõ",
-	//"2","9","10","J","Q","K","A",
-	//"2","6","7","8","9","10","J","Q","K","A",
-	//"2","3","4","5","6","7","8","9","10","J","Q","K","A",
 };
 
 static const wstring flag[15] = { L"3",L"4",L"5",L"6",L"7",L"8",L"9",L"10",L"J",L"Q",L"K",L"A",L"2",L"¹í",L"Íõ" };
@@ -36,6 +31,7 @@ const wstring CONFIG_PATH = L".\\app\\com.master5.doudizu\\config.ini";
 const wstring CONFIG_DIR = L".\\app\\com.master5.doudizu\\";
 
 const int CONIFG_INIT_SCORE = 20000;
+const int CONFIG_BOTTOM_SCORE = 1000;
 
 class Util {
 public:
@@ -56,16 +52,20 @@ public:
 	static wstring string2wstring(string str);
 	static void mkdir();
 };
-class Config {
+class Admin {
 public:
 	static int64_t readAdmin();
+	static bool isAdmin(int64_t playNum);
 	static bool writeAdmin(int64_t playerNum);
 	static int64_t readScore(int64_t playerNum);
 	static bool getScore(int64_t playerNum);
-	static int addScore(int64_t playerNum, int score);
+	static bool addScore(wstring playerNum, int score);
+	static bool addScore(int64_t playerNum, int score);
 	static bool IAmAdmin(int64_t playerNum);
 	static bool resetGame(int64_t playNum);
 	static wstring readString();
+	static bool addScoreTo(wstring msg, int64_t playNum);
+	static bool gameOver(wstring msg, int64_t playNum);
 private:
 	static bool writeScore(int64_t playerNum, int score);
 };
@@ -91,7 +91,7 @@ class Desk {
 public:
 
 	Desk();
-	int score;
+	int multiple;
 	wstring cards[54];
 	int64_t number;
 	vector<Player*> players;
@@ -110,7 +110,6 @@ public:
 
 	void join(int64_t playNum);
 	void startGame();
-	static void gameOver(int64_t number);
 	void exit(int64_t playNum);
 	void commandList();
 
@@ -150,5 +149,6 @@ public:
 	static void game(int64_t deskNum, int64_t playNum, const char *msg);
 	static bool game(int64_t playNum, const char *msg);
 	int getDesk(int64_t deskNum);
+	void gameOver(int64_t deskNum);
 	void listDesks();
 };
