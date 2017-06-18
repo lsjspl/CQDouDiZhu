@@ -26,7 +26,7 @@ void Util::sendGroupMsg(int64_t groupid, const char *msg) {
 void Util::sendPrivateMsg(int64_t number, const char* msg) {
 #ifdef _DEBUG  
 	string aa = msg;
-	cout << "私聊：" << aa << endl;
+	cout << "私聊" << number << "：" << aa << endl;
 #else
 	CQ_sendPrivateMsg(Util::AC, number, msg);
 #endif
@@ -159,6 +159,7 @@ Desk::Desk() {
 	this->lastWeights = new vector<int>;//上位玩家的牌
 
 	this->whoIsWinner = 0;
+	this->multiple = 1;
 
 }
 
@@ -216,6 +217,11 @@ void Desk::listPlayers(int type)
 	bool hasType = (type & 1) == 1;
 	bool hasWin = ((type >> 1) & 1) == 1;
 
+	int score = CONFIG_BOTTOM_SCORE* this->multiple;
+	int dubbleScore = score / 2;
+	this->msg << "积分倍数：" << this->multiple;
+	this->breakLine();
+
 	for (unsigned i = 0; i < this->players.size(); i++) {
 		this->msg << i + 1 << L":";
 		if (hasType) {
@@ -224,38 +230,32 @@ void Desk::listPlayers(int type)
 
 		this->msg << L"[CQ:at,qq=" << this->players[i]->number << L"]";
 		if (hasWin) {
-			int score = CONFIG_BOTTOM_SCORE* this->multiple ;
-			int dubbleScore = CONFIG_BOTTOM_SCORE* (this->multiple + 1);
 			if (this->whoIsWinner == 2) {//如果是农民赢了
 				if (i == this->bossIndex) {
 					this->msg << L"[" << L"失败-" << dubbleScore << L"分]";
 					Admin::addScore(this->players[i]->number, -dubbleScore);
 				}
+				else if (this->players[i]->isSurrender) {
+					this->msg << L"[" << L"弃牌+" << 0 << L"分]";
+				}
 				else {
-					if (this->players[i]->isSurrender) {
-						this->msg << L"[" << L"弃牌+" << 0 << L"分]";
-					}
-					else {
-						this->msg << L"[" << L"胜利+" << (CONFIG_BOTTOM_SCORE* this->multiple) << L"分]";
-						Admin::addScore(this->players[i]->number, score);
-					}
+					this->msg << L"[" << L"胜利+" << score << L"分]";
+					Admin::addScore(this->players[i]->number, score);
 				}
 			}
 			else {
 				if (i == this->bossIndex) {
-					this->msg << L"[" << L"胜利+" << (CONFIG_BOTTOM_SCORE* this->multiple) << L"分]";
+					this->msg << L"[" << L"胜利+" << dubbleScore << L"分]";
 					Admin::addScore(this->players[i]->number, dubbleScore);
 				}
+				else if (this->players[i]->isSurrender) {
+					this->msg << L"[" << L"弃牌-" << dubbleScore << L"分]";
+					Admin::addScore(this->players[i]->number, -dubbleScore);
+				}
 				else {
-					if (this->players[i]->isSurrender) {
-						this->msg << L"[" << L"弃牌-" << (CONFIG_BOTTOM_SCORE* this->multiple) << L"分]";
-						Admin::addScore(this->players[i]->number, -dubbleScore);
-					}
-					else {
-						this->msg << L"[" << L"失败-" << (CONFIG_BOTTOM_SCORE* this->multiple) << L"分]";
-						Admin::addScore(this->players[i]->number, -score);
+					this->msg << L"[" << L"失败-" << score << L"分]";
+					Admin::addScore(this->players[i]->number, -score);
 
-					}
 				}
 			}
 		}
@@ -434,17 +434,21 @@ wstring Desk::getMycardType(vector<wstring> list, vector<int> *weights)
 
 	//飞机
 	int  planeCount = 0;
-	for (unsigned i = 0; i < counts.size() && counts[i] >= 3; i++, planeCount++);
+	for (unsigned i = 0; i < counts.size(); i++) {
+		if (counts[i] >= 3) {
+			planeCount++;
+		}
+	}
 	if (planeCount > 1) {
 		wstring tmp;
 		if (cardCount == planeCount * 3) {
 			tmp = L"飞机";
 		}
 		else if (cardCount == planeCount * 4) {
-			tmp = L"单翅飞机";
+			tmp = L"飞机带单";
 		}
 		else if (cardCount == planeCount * 5 && min == 2) {
-			tmp = L"双翅飞机";
+			tmp = L"双翅带对";
 		}
 
 		for (int i = 0; i < planeCount; i++) {
@@ -584,7 +588,6 @@ void Desk::play(int64_t playNum, wstring msg)
 			tmp = msg.substr(i, 2);
 			i++;
 		}
-		wcout << "mycard:" << tmp << endl;
 		msglist.push_back(tmp);
 	}
 
@@ -623,7 +626,7 @@ void Desk::play(int64_t playNum, vector<wstring> list)
 
 		//处理积分
 		if (type == L"王炸") {
-			this->multiple+= 2;
+			this->multiple += 2;
 		}
 		else if (type == L"炸弹") {
 			this->multiple += 1;
@@ -714,22 +717,28 @@ void Desk::surrender(int64_t playNum)
 
 	player->isSurrender = true;
 
-	for (size_t i = 0; i < this->players.size(); i++) {
-		if (players[i]->isSurrender) {
-			if (i == this->bossIndex || i != index) {
-
-				this->whoIsWinner = this->bossIndex == i ? 2 : 1;
-
-				this->msg << L"游戏结束";
-				this->breakLine();
-				this->listPlayers(3);
-
-				this->msg << (this->whoIsWinner == 1 ? L"地主赢了" : L"农民赢了");
-				casino.gameOver(this->number);
-				return;
+	if (index == this->bossIndex) {
+		this->whoIsWinner = 2;//农民赢
+	}
+	else {
+		for (size_t i = 0; i < this->players.size(); i++) {
+			if (players[i]->isSurrender && i != this->bossIndex && i != index) {
+				this->whoIsWinner = 1;
+				break;
 			}
 		}
 	}
+
+	if (this->whoIsWinner > 0) {
+		this->msg << L"游戏结束";
+		this->breakLine();
+		this->listPlayers(3);
+
+		this->msg << (this->whoIsWinner == 1 ? L"地主赢了" : L"农民赢了");
+		casino.gameOver(this->number);
+		return;
+	}
+
 
 	if (this->currentPlayIndex == index) {
 		this->msg << L"上回合：" << this->lastCardType;
@@ -771,7 +780,7 @@ void Desk::openCard(int64_t playNum)
 	this->listCardsOnDesk(player);
 	this->breakLine();
 
-
+	this->multiple += 2;
 }
 
 void Desk::getPlayerInfo(int64_t playNum)
@@ -796,7 +805,7 @@ void Desks::gameOver(int64_t number)
 	}
 	vector<Desk*>::iterator it = casino.desks.begin() + index;
 	casino.desks.erase(it);
-	Util::sendGroupMsg(number, "游戏被强制结束了，fuck");
+	Util::sendGroupMsg(number, "游戏结束");
 }
 
 void Desk::exit(int64_t number)
@@ -833,16 +842,14 @@ void Desk::commandList()
 		<< L"[R]" << L"开始游戏：是否开始游戏\r\n"
 		<< L"[R]" << L"下桌：退出游戏，只能在准备环节使用\r\n"
 		<< L"[R]" << L"玩家列表：当前在游戏中得玩家信息\r\n"
-//		<< L"[开发中]" << L"记牌器：显示已经出过的牌\r\n"
 		<< L"[R]" << L"弃牌：放弃本局游戏，当地主或者两名农民弃牌游戏结束,弃牌农民玩家赢了不得分，输了双倍扣分" << "\r\n"
 		<< L"[R]" << L"获取积分：获取积分，每天可获取2w分。" << "\r\n"
 		<< L"[B]" << L"我的信息：我的信息" << "\r\n"
 		<< L"私聊命令：" << "\r\n"
 		<< L"[管][B]" << L"我是管理：设置游戏管理为当前发送消息的qq管理员可进行管理命令。管理设置后不能更改" << "\r\n"
 		<< L"[管][B]" << L"重置斗地主：删除所有配置。重置后可重新设定管理员" << "\r\n"
-		<< L"[管][开发中]" << L"设置积分[积分]：设置积分的默认值，获取积分和增加积分会根据本项进行设置，不设置默认为2W，比如：设置积分123456" << "\r\n"
 		<< L"[管][B]" << L"结束游戏[群号]：结束指定群号的游戏，比如：结束游戏123456" << "\r\n"
-		<< L"[管][B]" << L"增加积分[qq号]：给指定qq增加积分，会有个默认值，比如：增加积分123456"
+		<< L"[管][B]" << L"分配积分[qq号]=[积分]：给指定qq分配积分，如：分配积分123456=500"
 		;
 	this->breakLine();
 }
@@ -1044,8 +1051,8 @@ bool Desks::game(int64_t playNum, const char * msgArray)
 	else if (msg == L"重置斗地主" || msg == L"初始化斗地主") {
 		result = Admin::resetGame(playNum);
 	}
-	else if (msg.find(L"增加积分") == 0) {
-		result = Admin::addScoreTo(msg, playNum);
+	else if (regex_match(msg, allotReg)) {
+		result = Admin::allotScoreTo(msg, playNum);
 	}
 	else if (msg.find(L"结束游戏") == 0) {//结束游戏
 		result = Admin::gameOver(msg, playNum);
@@ -1098,14 +1105,29 @@ wstring Admin::readString() {
 	return wstring(tmp);
 }
 
-bool Admin::addScoreTo(wstring msg, int64_t playNum)
+bool Admin::allotScoreTo(wstring msg, int64_t playNum)
 {
+
+	
+	int score;
+	int64_t playerNum;
+
+	wsmatch mr;
+	wstring::const_iterator src_it = msg.begin(); // 获取起始位置
+	wstring::const_iterator src_end = msg.end(); // 获取结束位置
+	regex_search(src_it, src_end, mr, numberReg);
 	wstringstream ss;
-	ss << msg.substr(4, msg.size());
-	int64_t destNum;
-	ss >> destNum;
+	ss << mr[0].str();
+	ss >> playerNum;
 	ss.str(L"");
-	return  Admin::isAdmin(playNum) && Admin::addScore(msg, CONIFG_INIT_SCORE);
+	src_it = mr[0].second;
+	regex_search(src_it, src_end, mr, numberReg);
+	wstringstream scoress;
+	scoress << mr[0].str();
+	scoress >> score;
+	scoress.str(L"");
+
+	return Admin::isAdmin(playNum) && Admin::writeScore(playerNum, score < 0 ? 0 : score);
 }
 
 bool Admin::gameOver(wstring msg, int64_t playNum)
@@ -1151,11 +1173,11 @@ bool Admin::getScore(int64_t playerNum)
 	ss << playerNum;
 	wstring key = ss.str();
 	ss.str(L"");
-	int lastGetScoreTime = GetPrivateProfileInt(model.c_str(), key.c_str(), 0, CONFIG_PATH.c_str());
+	int64_t lastGetScoreTime = GetPrivateProfileInt(model.c_str(), key.c_str(), 0, CONFIG_PATH.c_str());
 	time_t rawtime;
-	int now = time(&rawtime);
+	int64_t now = time(&rawtime);
 
-	if (now > lastGetScoreTime + 24 * 3600 * 1000) {
+	if (now > lastGetScoreTime + 24 * 60*60) {
 		Admin::addScore(playerNum, CONIFG_INIT_SCORE);
 		ss << now;
 		wstring value = ss.str();
@@ -1165,17 +1187,7 @@ bool Admin::getScore(int64_t playerNum)
 	return false;
 }
 
-bool Admin::addScore(wstring msg, int score)
-{
-	wstringstream ss;
-	ss << msg.substr(4, msg.size());
-	int64_t destNum;
-	ss >> destNum;
-	ss.str(L"");
-	return  Admin::addScore(destNum, CONIFG_INIT_SCORE);
-}
-
-bool Admin::writeScore(int64_t playerNum, int score)
+bool Admin::writeScore(int64_t playerNum, int64_t score)
 {
 	wstring model = L"score";
 	wstringstream ss;
@@ -1190,7 +1202,7 @@ bool Admin::writeScore(int64_t playerNum, int score)
 
 bool Admin::addScore(int64_t playerNum, int score)
 {
-	int hasScore = Admin::readScore(playerNum) + score;
+	int64_t hasScore = Admin::readScore(playerNum) + score;
 	return  Admin::writeScore(playerNum, hasScore < 0 ? 0 : hasScore);
 }
 

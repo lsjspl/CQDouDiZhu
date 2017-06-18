@@ -19,8 +19,6 @@ void testGame() {
 	while (true) {
 		char str[30];
 		cin.getline(str, 30);
-		cout << str << endl;
-
 		Util::testMsg(desknum, playNum, str);
 
 	}
@@ -28,12 +26,12 @@ void testGame() {
 }
 
 int main() {
-	Desks::game(33333, "增加积分22222");
+	//Desks::game(33333, "增加积分22222");
 	//DeleteFile(L".\\com.master5.doudizu\\a.txt");
-	//Config::getScore(11111);
-	//wstring dirName = L".\\com.master.five\\";
-	//CreateDirectory(dirName.c_str(), NULL);
-	//testGame();
+	Desks::game(2222,33333, "获取积分");
+	
+
+
 	system("pause");
 
 

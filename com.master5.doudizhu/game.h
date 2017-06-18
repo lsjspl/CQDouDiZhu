@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <tchar.h>  
+#include <regex> 
 using namespace std;
 static const wstring  cardDest[54] = {
 	L"鬼",L"王",
@@ -30,8 +31,11 @@ const int STATE_GAMEING = 3;
 const wstring CONFIG_PATH = L".\\app\\com.master5.doudizu\\config.ini";
 const wstring CONFIG_DIR = L".\\app\\com.master5.doudizu\\";
 
-const int CONIFG_INIT_SCORE = 20000;
+const int CONIFG_INIT_SCORE = 10000;
 const int CONFIG_BOTTOM_SCORE = 1000;
+
+const wregex allotReg(L"分配积分(\\d+)=(\\d+)");
+const wregex numberReg(L"\\d+");
 
 class Util {
 public:
@@ -54,20 +58,19 @@ public:
 };
 class Admin {
 public:
+	static wstring readString();
 	static int64_t readAdmin();
+	static int64_t readScore(int64_t playerNum);
 	static bool isAdmin(int64_t playNum);
 	static bool writeAdmin(int64_t playerNum);
-	static int64_t readScore(int64_t playerNum);
 	static bool getScore(int64_t playerNum);
-	static bool addScore(wstring playerNum, int score);
 	static bool addScore(int64_t playerNum, int score);
 	static bool IAmAdmin(int64_t playerNum);
 	static bool resetGame(int64_t playNum);
-	static wstring readString();
-	static bool addScoreTo(wstring msg, int64_t playNum);
+	static bool allotScoreTo(wstring msg, int64_t playNum);
 	static bool gameOver(wstring msg, int64_t playNum);
 private:
-	static bool writeScore(int64_t playerNum, int score);
+	static bool writeScore(int64_t playerNum, int64_t score);
 };
 
 class Player
