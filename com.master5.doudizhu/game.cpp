@@ -218,8 +218,8 @@ void Desk::listPlayers(int type)
 	bool hasWin = ((type >> 1) & 1) == 1;
 
 	int score = CONFIG_BOTTOM_SCORE* this->multiple;
-	int dubbleScore = score / 2;
-	this->msg << "积分倍数：" << this->multiple;
+	int halfScore = score / 2;
+	this->msg << L"积分倍数：" << this->multiple;
 	this->breakLine();
 
 	for (unsigned i = 0; i < this->players.size(); i++) {
@@ -232,30 +232,29 @@ void Desk::listPlayers(int type)
 		if (hasWin) {
 			if (this->whoIsWinner == 2) {//如果是农民赢了
 				if (i == this->bossIndex) {
-					this->msg << L"[" << L"失败-" << dubbleScore << L"分]";
-					Admin::addScore(this->players[i]->number, -dubbleScore);
+					this->msg << L"[" << L"失败-" << score << L"分]";
+					Admin::addScore(this->players[i]->number, -score);
 				}
 				else if (this->players[i]->isSurrender) {
 					this->msg << L"[" << L"弃牌+" << 0 << L"分]";
 				}
 				else {
-					this->msg << L"[" << L"胜利+" << score << L"分]";
-					Admin::addScore(this->players[i]->number, score);
+					this->msg << L"[" << L"胜利+" << halfScore << L"分]";
+					Admin::addScore(this->players[i]->number, halfScore);
 				}
 			}
 			else {
 				if (i == this->bossIndex) {
-					this->msg << L"[" << L"胜利+" << dubbleScore << L"分]";
-					Admin::addScore(this->players[i]->number, dubbleScore);
+					this->msg << L"[" << L"胜利+" << score << L"分]";
+					Admin::addScore(this->players[i]->number, score);
 				}
 				else if (this->players[i]->isSurrender) {
-					this->msg << L"[" << L"弃牌-" << dubbleScore << L"分]";
-					Admin::addScore(this->players[i]->number, -dubbleScore);
+					this->msg << L"[" << L"弃牌-" << score << L"分]";
+					Admin::addScore(this->players[i]->number, -score);
 				}
 				else {
-					this->msg << L"[" << L"失败-" << score << L"分]";
-					Admin::addScore(this->players[i]->number, -score);
-
+					this->msg << L"[" << L"失败-" << halfScore << L"分]";
+					Admin::addScore(this->players[i]->number, -halfScore);
 				}
 			}
 		}

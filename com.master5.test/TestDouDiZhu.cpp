@@ -28,10 +28,10 @@ void testGame() {
 int main() {
 	//Desks::game(33333, "增加积分22222");
 	//DeleteFile(L".\\com.master5.doudizu\\a.txt");
-	Desks::game(2222,33333, "获取积分");
+	//Desks::game(2222,33333, "获取积分");
 	
-
-
+	//
+	testGame();
 	system("pause");
 
 
