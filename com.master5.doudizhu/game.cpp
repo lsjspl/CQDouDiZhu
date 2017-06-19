@@ -8,9 +8,9 @@ int Util::AC = 0;
 static Desks casino;
 
 
-void Util::testMsg(int64_t desknum, int64_t playNum, const char * str) {
+void Util::testMsg(bool subType, int64_t desknum, int64_t playNum, const char * str) {
 	int index = casino.desks[0]->currentPlayIndex;
-	casino.game(desknum, playNum + index, str);
+	casino.game(subType, desknum, playNum + index, str);
 }
 
 
@@ -20,6 +20,16 @@ void Util::sendGroupMsg(int64_t groupid, const char *msg) {
 	cout << "群发：" << aa << endl;
 #else
 	CQ_sendGroupMsg(Util::AC, groupid, msg);
+#endif
+}
+
+
+void Util::sendDiscussMsg(int64_t groupid, const char *msg) {
+#ifdef _DEBUG  
+	string aa = msg;
+	cout << "群发：" << aa << endl;
+#else
+	CQ_sendDiscussMsg(Util::AC, groupid, msg);
 #endif
 }
 
@@ -160,6 +170,7 @@ Desk::Desk() {
 
 	this->whoIsWinner = 0;
 	this->multiple = 1;
+	this->turn = 0;
 
 }
 
@@ -203,14 +214,6 @@ int Desk::getPlayer(int64_t number) {
 	return -1;
 }
 
-
-void Desk::listPlayers()
-{
-	this->msg << L"玩家:";
-	this->breakLine();
-	this->listPlayers(1);
-}
-
 void Desk::listPlayers(int type)
 {
 
@@ -220,6 +223,8 @@ void Desk::listPlayers(int type)
 	int score = CONFIG_BOTTOM_SCORE* this->multiple;
 	int halfScore = score / 2;
 	this->msg << L"积分倍数：" << this->multiple;
+	this->breakLine();
+	this->msg << L"出牌次数(不计算过牌)：" << this->turn;
 	this->breakLine();
 
 	for (unsigned i = 0; i < this->players.size(); i++) {
@@ -444,10 +449,10 @@ wstring Desk::getMycardType(vector<wstring> list, vector<int> *weights)
 			tmp = L"飞机";
 		}
 		else if (cardCount == planeCount * 4) {
-			tmp = L"飞机带单";
+			tmp = L"飞机带翅膀";
 		}
 		else if (cardCount == planeCount * 5 && min == 2) {
-			tmp = L"双翅带对";
+			tmp = L"飞机带双翅膀";
 		}
 
 		for (int i = 0; i < planeCount; i++) {
@@ -473,10 +478,8 @@ wstring Desk::getMycardType(vector<wstring> list, vector<int> *weights)
 	return L"";
 }
 
-
-void Desk::sendMsg()
+void Desk::sendMsg(bool subType)
 {
-
 	wstring tmp = this->msg.str();
 	if (tmp.empty()) {
 		return;
@@ -485,7 +488,13 @@ void Desk::sendMsg()
 	if (tmp[length - 2] == '\r' && tmp[length - 1] == '\n') {
 		tmp = tmp.substr(0, length - 2);
 	}
-	Util::sendGroupMsg(this->number, Util::wstring2string(tmp).data());
+	if (subType) {
+		Util::sendGroupMsg(this->number, Util::wstring2string(tmp).data());
+	}
+	else {
+		Util::sendDiscussMsg(this->number, Util::wstring2string(tmp).data());
+	}
+
 	this->msg.str(L"");
 }
 
@@ -495,8 +504,6 @@ void Desk::sendPlayerMsg()
 		players[i]->sendMsg();
 	}
 }
-
-
 
 void Desk::shuffle() {
 	srand((unsigned)time(NULL));
@@ -572,13 +579,22 @@ void Desk::sendBossCard()
 	}
 	playerBoss->breakLine();
 
-	state = STATE_GAMEING;
+	this->state = STATE_SEND_BOSS_CARD;
+
 }
 
 void Desk::play(int64_t playNum, wstring msg)
 {
-
+	int playIndex = this->getPlayer(playNum);
 	int length = msg.length();
+
+	if (playIndex == -1 || playIndex != this->currentPlayIndex
+		|| (!(this->state == STATE_GAMEING && this->turn > 0)
+			&& !(this->state == STATE_SEND_BOSS_CARD && this->turn == 0))
+		|| length < 2) {
+		return;
+	}
+
 	vector<wstring> msglist;
 
 	for (int i = 1; i < length; i++) {
@@ -590,18 +606,12 @@ void Desk::play(int64_t playNum, wstring msg)
 		msglist.push_back(tmp);
 	}
 
-	this->play(playNum, msglist);
+	this->play(msglist, playIndex);
 
 }
 
-void Desk::play(int64_t playNum, vector<wstring> list)
+void Desk::play(vector<wstring> list, int playIndex)
 {
-
-	int playIndex = this->getPlayer(playNum);
-
-	if (playIndex == -1 || playIndex != this->currentPlayIndex || this->state != STATE_GAMEING) {
-		return;
-	}
 
 	Player *player = this->players[playIndex];
 	vector<wstring> mycardTmp(player->card);
@@ -623,6 +633,18 @@ void Desk::play(int64_t playNum, vector<wstring> list)
 
 	if (isCanWin) {
 
+		if (this->turn == 0) {
+			this->state = STATE_GAMEING;
+		}
+
+		player->card = mycardTmp;
+		this->lastWeights = weights;
+		this->lastCard = list;
+		this->lastCardType = type;
+		this->lastPlayIndex = this->currentPlayIndex;
+		this->turn++;
+
+
 		//处理积分
 		if (type == L"王炸") {
 			this->multiple += 2;
@@ -641,12 +663,6 @@ void Desk::play(int64_t playNum, vector<wstring> list)
 			casino.gameOver(this->number);
 			return;
 		}
-
-		player->card = mycardTmp;
-		this->lastWeights = weights;
-		this->lastCard = list;
-		this->lastCardType = type;
-		this->lastPlayIndex = this->currentPlayIndex;
 
 		player->listCards();
 
@@ -764,22 +780,24 @@ void Desk::openCard(int64_t playNum)
 {
 
 	int index = this->getPlayer(playNum);
-	if (index == -1 || this->state != STATE_GAMEING) {
+	if (index == -1 || this->state > STATE_SEND_BOSS_CARD || this->state < STATE_START) {
 		return;
 	}
 	Player *player = this->players[index];
 
-	player->isOpenCard = true;
-
+	if (!player->isOpenCard) {
+		player->isOpenCard = true;
+		this->multiple += 2;
+	}
 
 	this->at(playNum);
-	this->msg << L"明牌：";
+	this->msg << L"明牌";
 	this->breakLine();
 
 	this->listCardsOnDesk(player);
 	this->breakLine();
 
-	this->multiple += 2;
+
 }
 
 void Desk::getPlayerInfo(int64_t playNum)
@@ -829,7 +847,7 @@ void Desk::commandList()
 {
 	this->msg << L"=    命令列表    =" << "\r\n"
 		<< L"命令说明：" << "\r\n"
-		<< L"         带有[管]的命令 只能管理员使用，使用前请先设置自己为管理员，管理员只有重置游戏后能更改(也可以修改配置)" << "\r\n"
+		<< L"         带有[管]的命令 只能管理员使用，使用前必须先绑定自己为管理员，管理员只有重置游戏后能更改(也可以修改配置)" << "\r\n"
 		<< L"         带有[开发中]的命令 还未开发完成" << "\r\n"
 		<< L"         带有[B]的命令 是测试功能，可能会更改和加强" << "\r\n"
 		<< L"         带有[R]的命令 是正式功能，一般不会做更改" << "\r\n"
@@ -841,11 +859,12 @@ void Desk::commandList()
 		<< L"[R]" << L"开始游戏：是否开始游戏\r\n"
 		<< L"[R]" << L"下桌：退出游戏，只能在准备环节使用\r\n"
 		<< L"[R]" << L"玩家列表：当前在游戏中得玩家信息\r\n"
+		<< L"[R]" << L"明牌：显示自己的牌给所有玩家，明牌会导致积分翻倍，只能在发完牌后以及出牌之前使用。\r\n"
 		<< L"[R]" << L"弃牌：放弃本局游戏，当地主或者两名农民弃牌游戏结束,弃牌农民玩家赢了不得分，输了双倍扣分" << "\r\n"
 		<< L"[R]" << L"获取积分：获取积分，每天可获取2w分。" << "\r\n"
 		<< L"[B]" << L"我的信息：我的信息" << "\r\n"
 		<< L"私聊命令：" << "\r\n"
-		<< L"[管][B]" << L"我是管理：设置游戏管理为当前发送消息的qq管理员可进行管理命令。管理设置后不能更改" << "\r\n"
+		<< L"[管][B]" << L"我是管理：绑定游戏管理员为当前发送消息的qq，管理员可使用管理命令。管理设置后不能更改" << "\r\n"
 		<< L"[管][B]" << L"重置斗地主：删除所有配置。重置后可重新设定管理员" << "\r\n"
 		<< L"[管][B]" << L"结束游戏[群号]：结束指定群号的游戏，比如：结束游戏123456" << "\r\n"
 		<< L"[管][B]" << L"分配积分[qq号]=[积分]：给指定qq分配积分，如：分配积分123456=500"
@@ -962,7 +981,7 @@ void Desk::startGame() {
 		this->msg << L"游戏开始";
 		this->breakLine();
 
-		this->listPlayers();
+		this->listPlayers(1);
 
 		this->shuffle();
 
@@ -973,11 +992,11 @@ void Desk::startGame() {
 	else {
 		this->msg << L"没有足够的玩家或者已经开始游戏";
 		this->breakLine();
-		this->listPlayers();
+		this->listPlayers(1);
 	}
 }
 
-void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
+bool Desks::game(bool subType, int64_t deskNum, int64_t playNum, const char* msgArray) {
 
 	string tmp = msgArray;
 
@@ -993,7 +1012,7 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 	else if (msg.find(L"出") == 0) {//出牌阶段
 		desk->play(playNum, msg);
 	}
-	else if (msg == L"过" || msg == L"过牌" || msg == L"不出" || msg == L"不要" || msg == L"PASS") {//跳过出牌阶段
+	else if (msg == L"过" || msg == L"过牌" || msg == L"不出" || msg == L"要不起" || msg == L"不要" || msg == L"PASS") {//跳过出牌阶段
 		desk->discard(playNum);
 	}
 	else if (msg == L"退出游戏" || msg == L"退桌" || msg == L"下桌") {//结束游戏
@@ -1003,7 +1022,7 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 		desk->commandList();
 	}
 	else if (msg == L"玩家列表") {
-		desk->listPlayers();
+		desk->listPlayers(1);
 	}
 	else if (msg == L"开始游戏") {
 		desk->startGame();
@@ -1029,9 +1048,13 @@ void Desks::game(int64_t deskNum, int64_t playNum, const char* msgArray) {
 	else if (msg == L"获取积分") {
 		desk->getScore(playNum);
 	}
+	else {
+		return false;
+	}
 
-	desk->sendMsg();
+	desk->sendMsg(subType);
 	desk->sendPlayerMsg();
+	return true;
 }
 
 bool Desks::game(int64_t playNum, const char * msgArray)
@@ -1107,7 +1130,7 @@ wstring Admin::readString() {
 bool Admin::allotScoreTo(wstring msg, int64_t playNum)
 {
 
-	
+
 	int score;
 	int64_t playerNum;
 
@@ -1176,7 +1199,7 @@ bool Admin::getScore(int64_t playerNum)
 	time_t rawtime;
 	int64_t now = time(&rawtime);
 
-	if (now > lastGetScoreTime + 24 * 60*60) {
+	if (now > lastGetScoreTime + 24 * 60 * 60) {
 		Admin::addScore(playerNum, CONIFG_INIT_SCORE);
 		ss << now;
 		wstring value = ss.str();

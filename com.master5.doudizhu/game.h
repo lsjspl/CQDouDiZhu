@@ -26,7 +26,8 @@ static const wstring flag[15] = { L"3",L"4",L"5",L"6",L"7",L"8",L"9",L"10",L"J",
 const int STATE_WAIT = 0;
 const int STATE_START = 1;
 const int STATE_BOSSING = 2;
-const int STATE_GAMEING = 3;
+const int STATE_SEND_BOSS_CARD = 3;
+const int STATE_GAMEING = 4;
 
 const wstring CONFIG_PATH = L".\\app\\com.master5.doudizu\\config.ini";
 const wstring CONFIG_DIR = L".\\app\\com.master5.doudizu\\";
@@ -40,8 +41,9 @@ const wregex numberReg(L"\\d+");
 class Util {
 public:
 	static int AC;
-	static void testMsg(int64_t playNum, int64_t desknum, const char * str);
+	static void testMsg(bool subType, int64_t playNum, int64_t desknum, const char * str);
 	static void sendGroupMsg(int64_t groupid, const char *msg);
+	static void sendDiscussMsg(int64_t groupid, const char *msg);
 	static void sendPrivateMsg(int64_t groupid, const char *msg);
 	static int  findAndRemove(vector<wstring> &dest, wstring str);
 	static int  find(vector<wstring> &dest, wstring str);
@@ -95,6 +97,7 @@ public:
 
 	Desk();
 	int multiple;
+	int turn;
 	wstring cards[54];
 	int64_t number;
 	vector<Player*> players;
@@ -123,7 +126,7 @@ public:
 	void dontBoss(int64_t playerNum);
 	void sendBossCard();
 	void play(int64_t playNum, wstring msg);
-	void play(int64_t playNum, vector<wstring> list);//出牌
+	void play(vector<wstring> list, int playIndex);//出牌
 	void discard(int64_t playNum);
 	void surrender(int64_t playNum);//投降
 	void openCard(int64_t playNum);//明牌
@@ -135,11 +138,10 @@ public:
 	void breakLine();
 	int getPlayer(int64_t number);//按qq号获得玩家得索引
 	void setNextPlayerIndex();//设置下个出牌得玩家索引
-	void listPlayers();
 	void listPlayers(int type);
 	bool isCanWin(int cardCount, vector<int> *Weights, wstring type);
 	wstring getMycardType(vector<wstring> list, vector<int> *Weights);
-	void sendMsg();
+	void sendMsg(bool subType);
 	void sendPlayerMsg();
 	void listCardsOnDesk(Player* player);
 
@@ -149,7 +151,7 @@ class Desks {
 public:
 	vector<Desk*> desks;
 	Desk* getOrCreatDesk(int64_t deskNum);
-	static void game(int64_t deskNum, int64_t playNum, const char *msg);
+	static bool game(bool subType,int64_t deskNum, int64_t playNum, const char *msg);
 	static bool game(int64_t playNum, const char *msg);
 	int getDesk(int64_t deskNum);
 	void gameOver(int64_t deskNum);
