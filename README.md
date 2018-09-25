@@ -30,3 +30,5 @@ com.master5.test 为测试项目 请使用debug编译<br>
 主站：https://cqp.cc
 
 文库：https://d.cqp.me
+
+插件地址：https://cqp.cc/t/32764
